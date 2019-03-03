@@ -8,49 +8,112 @@
 
 module Lib
     ( ZipPath
-    , PahtPrefix
     , unzipImage
     , run
     , Recipe(..)
+    , findMods
+    , modReference
     ) where
 
-import Control.Applicative ((<|>))
-import Data.Maybe
-import Data.Char
-import qualified Data.Text as T
-import Data.Functor
+import Control.Applicative ((<|>), pure)
+import Control.Monad
+import Control.Monad.Error.Class (liftEither)
 import Data.Aeson hiding (Result)
-import Codec.Archive.Zip
-import qualified Data.ByteString as B
-import Data.Monoid ((<>))
-import System.Environment (getArgs)
-import System.FilePath.Posix ((</>), takeDirectory)
-import System.Directory
+import Data.Char
+import Data.Either
+import Data.Functor
+import Data.Maybe
 import Data.Map
+import Data.Monoid ((<>))
+import qualified Data.Text as T
+import Data.Tuple.Extra
 import qualified Data.Map as M
 import qualified Data.List as L
+import Codec.Archive.Zip
+import qualified Data.ByteString as B
+import System.Environment (getArgs)
+import System.FilePath ((</>), takeDirectory, isExtensionOf, dropExtension, takeFileName)
+import System.Directory
 
 import RawData
 
+
 type ZipPath = FilePath
-type PahtPrefix = FilePath
 
-
-unzipImage :: ZipPath -> FilePath -> PahtPrefix -> String -> IO ()
-unzipImage zipPath file pathPrefix version = do
-    createDirectoryIfMissing True $ takeDirectory filePath
-    mkEntrySelector fileVersionedPath
+unzipImage :: ZipPath -> FilePath -> FilePath -> IO ()
+unzipImage zipPath file destination = do
+    createDirectoryIfMissing True $ takeDirectory destination
+    mkEntrySelector filePhatInZip
         >>= withArchive zipPath . getEntry
-        >>= B.writeFile filePath
+        >>= B.writeFile destination
   where
-    fileVersionedPath = pathPrefix <> "_" <> version </> file
-    filePath = pathPrefix </> file
+    filePhatInZip = dropExtension (takeFileName zipPath) </> file
 
 data RecipeWithImage = RecipeWithImage
     { name :: String
     , icon :: Map String IconPart
     }
   deriving (Show)
+
+data ModType
+    = Zip FilePath
+    | Directory FilePath
+  deriving (Show)
+
+type ModAssociation = Map String ModType
+
+internalMods :: FilePath -> [(String, ModType)]
+internalMods path = fmap (fmap (Directory . (path </>)))
+    [("__base__", "base"), ("__core__", "core")]
+
+splitModNameAndPath :: String -> (String, FilePath)
+splitModNameAndPath = fmap (L.drop 1) . break (== '/')
+
+findMods :: String -> IO ([FilePath], [FilePath])
+findMods modDir = do
+    list <- listDirectory modDir
+    dirs <- filterM (\d -> doesDirectoryExist $ modDir </> d)  list
+    return (L.filter (isExtensionOf "zip") list, dirs)
+
+maybeToRight :: e -> Maybe a -> Either e a
+maybeToRight e = maybe (Left e) Right
+
+modReference :: String -> String
+modReference string = "__" <> (reverse . L.drop 1 . snd . break ('_' ==) $ reverse string)  <> "__"
+
+associateMods :: FilePath -> FilePath -> IO ModAssociation
+associateMods modsDir internalDir = do
+    (zips, dirs) <- findMods modsDir
+    let zipPairs = zip (modReference . dropExtension <$> zips) $ fmap (Zip . (modsDir </>)) zips
+    pure . M.fromList
+        $ zipPairs
+        <> (zip (fmap (modReference) dirs) $ fmap (Directory . (modsDir </>)) dirs)
+        <> internalMods internalDir
+
+copyImages :: FilePath -> FilePath -> FilePath -> [RecipeWithImage] -> IO ()
+copyImages modsDir internalDir dstDir recipes = do
+    putStrLn $ "dstDir: " <> show dstDir
+    associatedMods <- associateMods modsDir internalDir
+    mapM_ (copyImages' associatedMods) icons
+  where
+    icons = fmap splitModNameAndPath . mconcat
+        $ fmap (fmap iconPartIcon . elems . icon) recipes
+
+    copyImages' associatedMods (name, path) = do
+        putStrLn $ "asdfasdf2aasdasdfasdf: " <> name </> L.drop 1 path
+        case associatedMods M.!? name of
+            Just (Directory dir) -> do
+                putStrLn $ "Copying from: " <> show (dir </> path) <> " to: " <> dstPath
+                createDirectoryIfMissing True $ takeDirectory dstPath
+                copyFile (dir </> path) $ dstPath
+            Just (Zip zipFile) -> do
+                putStrLn $ "Unziping: " <> show zipFile <> " from: " <> show path <> " to: " <> dstPath
+                unzipImage zipFile path dstPath
+            Nothing -> do
+                print $ name <> "missing in associatedMods"
+                print associatedMods
+      where
+        dstPath = dstDir </> name </> path
 
 pairRecipeAndImages :: RawData -> [RecipeWithImage]
 pairRecipeAndImages rawData@RawData{..} =
@@ -120,16 +183,17 @@ pairRecipeAndImage RawData{..} Recipe{..} = RecipeWithImage
         magic x g h = ((flip M.lookup) x $ name) >>=
             (\v -> fmap toSingleIcon (g v) <|> h v)
 
+eitherToFail :: Either String a -> IO a
+eitherToFail (Right a) = pure a
+eitherToFail (Left e) = fail e
+
 run :: IO ()
 run = do
-    unzipImage
-        "/home/yrid/.factorio/mods/angelsbioprocessing_0.5.9.zip"
-        "graphics/icons/alien-bacteria.png"
-        "angelsbioprocessing"
-        "0.5.9"
-    data' <- eitherDecodeStrict @RawData
-        <$> B.readFile "purescript/data-raw-nice.json"
+    data' <- B.readFile "purescript/data-raw-nice.json"
+        >>= (eitherToFail . eitherDecodeStrict @RawData)
 
-    either print (print . pairRecipeAndImages) data'
-    either print (print . L.filter (M.null . icon) . pairRecipeAndImages) data'
-    either print (print . length . L.filter (M.null . icon) . pairRecipeAndImages) data'
+    copyImages
+        "/home/yrid/.factorio/mods"
+        "/home/yrid/.steam/steam/steamapps/common/Factorio"
+        "/home/yrid/factorio-images/"
+        $ pairRecipeAndImages data'

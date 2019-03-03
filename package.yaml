@@ -33,9 +33,10 @@ library:
     - containers
     - directory
     - filepath
-    - gi-gtk-declarative
     - text
     - zip
+    - extra
+    - mtl
 
 executables:
   calculator:
