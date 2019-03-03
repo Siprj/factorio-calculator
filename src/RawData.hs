@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module RawData
     ( Ammo(..)
@@ -29,6 +30,7 @@ module RawData
     )
   where
 
+import Control.Applicative ((<|>))
 import Data.Aeson hiding (Result)
 import Data.Aeson.TH
 import Data.Char
@@ -60,24 +62,54 @@ instance ToJSON ItemType where
         ItemTypeAmmo -> String "ammo"
 
 data Ingredient = Ingredient
-    { ingredientType :: ItemType
-    , ingredientName :: String
+    { ingredientName :: String
     , ingredientAmount :: String
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10} ''Ingredient)
+instance FromJSON Ingredient where
+    parseJSON = withObject "Ingredient" $ \v ->
+        Ingredient <$> v .: "1" <*> v .: "2"
+        <|> Ingredient <$> v .: "name" <*> v .: "amount"
+
+instance ToJSON Ingredient where
+    toJSON Ingredient{..} = object
+        [ "name" .= ingredientName
+        , "amount" .= ingredientAmount
+        ]
 
 data Results = Results
     { resultType :: Maybe ItemType -- Probably defaults to "item"
     , resultName :: String
+    , resultProbablity :: Maybe String
     , resultAmount :: Maybe String
     , resultAmount_min :: Maybe String
     , resultAmount_max :: Maybe String
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 6} ''Results)
+instance FromJSON Results where
+    parseJSON = withObject "Results" $ \v ->
+        Results
+            <$> v .:? "type"
+            <*> v .: "name"
+            <*> v .:? "probablity"
+            <*> v .:? "amount"
+            <*> v .:? "amount_min"
+            <*> v .:? "amount_max"
+        <|> Results
+            <$> v .:? "type"
+            <*> v .: "1"
+            <*> v .:? "2"
+            <*> v .:? "probablity"
+            <*> v .:? "amount_min"
+            <*> v .:? "amount_max"
+
+instance ToJSON Results where
+    toJSON Results{..} = object
+        [ "name" .= resultName
+        , "amount" .= resultAmount
+        ]
 
 data InputOutput = InputOutput
     { inputOutputIngredients :: Map String Ingredient
@@ -119,6 +151,7 @@ data Recipe = Recipe
     , recipeIngredients :: Maybe (Map String Ingredient)
     , recipeResults :: Maybe (Map String Results)
     , recipeResult :: Maybe String
+    , recipeResult_count :: Maybe String
     , recipeSubgroup :: Maybe String
     , recipeOrder :: Maybe String
     }

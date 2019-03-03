@@ -35,7 +35,8 @@ import System.Environment (getArgs)
 import System.FilePath ((</>), takeDirectory, isExtensionOf, dropExtension, takeFileName)
 import System.Directory
 
-import RawData
+import RawData hiding (Ingredient)
+import qualified RawData as RD
 
 
 type ZipPath = FilePath
@@ -49,8 +50,21 @@ unzipImage zipPath file destination = do
   where
     filePhatInZip = dropExtension (takeFileName zipPath) </> file
 
+data Ingredient = Ingredient
+    { ingredientName :: String
+    , ingredientAmount :: Int
+    }
+  deriving (Show)
+
+data Result = Result
+    { resultName :: String
+    , resultAmount :: Int
+    , resultProbablity :: Float
+    }
+
 data RecipeWithImage = RecipeWithImage
     { name :: String
+    , ingredients :: [Ingredient]
     , icon :: Map String IconPart
     }
   deriving (Show)
@@ -125,6 +139,7 @@ pairRecipeAndImage
     -> RecipeWithImage
 pairRecipeAndImage RawData{..} Recipe{..} = RecipeWithImage
     { name = recipeName
+    , ingredients = maybe [] (fmap toIngredient . M.elems) recipeIngredients
     , icon = fromMaybe M.empty $
         fmap toSingleIcon recipeIcon
         <|> recipeIcons
@@ -134,6 +149,12 @@ pairRecipeAndImage RawData{..} Recipe{..} = RecipeWithImage
         <|> normalResultsIcon
     }
   where
+    toIngredient :: RD.Ingredient -> Ingredient
+    toIngredient RD.Ingredient{..} = Ingredient
+        { ingredientName = ingredientName
+        , ingredientAmount = read ingredientName
+        }
+
     resultIcon :: Maybe (Map String IconPart)
     resultIcon = recipeResult >>= getItemFluidIcon
 
@@ -150,7 +171,7 @@ pairRecipeAndImage RawData{..} Recipe{..} = RecipeWithImage
     normalResultsIcon = recipeNormal
         >>= inputOutputResults
         >>= (listToMaybe . elems)
-        >>= (\Ingredient{..} -> getItemFluidIcon ingredientName)
+        >>= (\RD.Ingredient{..} -> getItemFluidIcon ingredientName)
 
     toSingleIcon :: String -> Map String IconPart
     toSingleIcon = M.singleton "1" . toIconPart
@@ -194,6 +215,6 @@ run = do
 
     copyImages
         "/home/yrid/.factorio/mods"
-        "/home/yrid/.steam/steam/steamapps/common/Factorio"
+        "/home/yrid/.steam/steam/steamapps/common/Factorio/data"
         "/home/yrid/factorio-images/"
         $ pairRecipeAndImages data'
