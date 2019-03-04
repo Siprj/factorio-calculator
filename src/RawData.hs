@@ -52,7 +52,8 @@ instance FromJSON ItemType where
         "fluid" -> pure ItemTypeFluid
         "item" -> pure ItemTypeItem
         "ammo" -> pure ItemTypeAmmo
-        _ -> fail $ "ItemType should be fluid, item, ammo. Got: " <> T.unpack text
+        _ -> fail $ "ItemType should be fluid, item, ammo. Got: "
+            <> T.unpack text
     parseJSON v = fail $ "ItemType should be string. Got: " <> show v
 
 instance ToJSON ItemType where
@@ -120,7 +121,9 @@ data InputOutput = InputOutput
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 11} ''InputOutput)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 11}
+    ''InputOutput)
 
 data Shift = Shift
     { _1 :: String
@@ -137,7 +140,9 @@ data IconPart = IconPart
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 8} ''IconPart)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 8}
+    ''IconPart)
 
 data Recipe = Recipe
     { recipeType :: String
@@ -157,7 +162,9 @@ data Recipe = Recipe
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 6} ''Recipe)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 6}
+    ''Recipe)
 
 data Item = Item
     { itemType :: ItemType
@@ -169,7 +176,9 @@ data Item = Item
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 4} ''Item)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 4}
+    ''Item)
 
 data Fluid = Fluid
     { fluidType :: String
@@ -180,7 +189,9 @@ data Fluid = Fluid
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 5} ''Fluid)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 5}
+    ''Fluid)
 
 data Ammo = Ammo
     { ammoType :: String
@@ -191,7 +202,9 @@ data Ammo = Ammo
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 4} ''Ammo)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 4}
+    ''Ammo)
 
 data MiningTool = MiningTool
     { miningToolsType :: String
@@ -202,7 +215,9 @@ data MiningTool = MiningTool
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 11} ''MiningTool)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 11}
+    ''MiningTool)
 
 data Car = Car
     { carType :: String
@@ -213,7 +228,9 @@ data Car = Car
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 3} ''Car)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 3}
+    ''Car)
 
 data Tool = Tool
     { toolType :: String
@@ -224,7 +241,9 @@ data Tool = Tool
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 4} ''Tool)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 4}
+    ''Tool)
 
 data Gun = Gun
     { gunType :: String
@@ -246,7 +265,9 @@ data Module = Module
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 6} ''Module)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 6}
+    ''Module)
 
 data Capsule = Capsule
     { capsuleType :: String
@@ -257,7 +278,9 @@ data Capsule = Capsule
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 7} ''Capsule)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 7}
+    ''Capsule)
 
 data RepairTool = RepairTool
     { repairToolType :: String
@@ -268,7 +291,9 @@ data RepairTool = RepairTool
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10} ''RepairTool)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10}
+    ''RepairTool)
 
 data Armor = Armor
     { armorType :: String
@@ -279,7 +304,9 @@ data Armor = Armor
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 5} ''Armor)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 5}
+    ''Armor)
 
 data RailPlanner = RailPlanner
     { railPlannerType :: String
@@ -290,7 +317,9 @@ data RailPlanner = RailPlanner
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 11} ''RailPlanner)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 11}
+    ''RailPlanner)
 
 data Locomotive = Locomotive
     { locomotiveType :: String
@@ -301,7 +330,9 @@ data Locomotive = Locomotive
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10} ''Locomotive)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10}
+    ''Locomotive)
 
 data FluidWagon = FluidWagon
     { fluidWagonType :: String
@@ -312,7 +343,9 @@ data FluidWagon = FluidWagon
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10} ''FluidWagon)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10}
+    ''FluidWagon)
 
 data CargoWagon = CargoWagon
     { cargoWagonType :: String
@@ -323,7 +356,9 @@ data CargoWagon = CargoWagon
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10} ''CargoWagon)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10}
+    ''CargoWagon)
 
 
 data ArtilleryWagon = ArtilleryWagon
@@ -335,7 +370,10 @@ data ArtilleryWagon = ArtilleryWagon
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 14} ''ArtilleryWagon)
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 14}
+    ''ArtilleryWagon)
+
 data RawData = RawData
     { recipe :: Map String Recipe
     , item :: Map String Item

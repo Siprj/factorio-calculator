@@ -13,15 +13,18 @@ module Lib
     , Recipe(..)
     , findMods
     , modReference
-    ) where
+    )
+  where
 
 import Control.Applicative ((<|>), pure)
 import Control.Monad
 import Control.Monad.Error.Class (liftEither)
 import Data.Aeson hiding (Result)
+import Data.Aeson.TH
 import Data.Char
 import Data.Either
 import Data.Functor
+import qualified Data.Foldable as F
 import Data.Maybe
 import Data.Map
 import Data.Monoid ((<>))
@@ -31,11 +34,18 @@ import qualified Data.Map as M
 import qualified Data.List as L
 import Codec.Archive.Zip
 import qualified Data.ByteString as B
-import System.Environment (getArgs)
-import System.FilePath ((</>), takeDirectory, isExtensionOf, dropExtension, takeFileName)
+import qualified Data.ByteString.Lazy as BL
 import System.Directory
+import System.Environment (getArgs)
+import System.FilePath
+    ( (</>)
+    , dropExtension
+    , isExtensionOf
+    , takeDirectory
+    , takeFileName
+    )
 
-import RawData hiding (Ingredient)
+import RawData hiding (Ingredient, Results, Recipe)
 import qualified RawData as RD
 
 
@@ -56,18 +66,30 @@ data Ingredient = Ingredient
     }
   deriving (Show)
 
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10}
+    ''Ingredient)
+
 data Result = Result
     { resultName :: String
     , resultAmount :: Int
     , resultProbablity :: Float
     }
+  deriving (Show)
 
-data RecipeWithImage = RecipeWithImage
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 6}
+    ''Result)
+
+data Recipe = Recipe
     { name :: String
     , ingredients :: [Ingredient]
+    , results :: [Result]
     , icon :: Map String IconPart
     }
   deriving (Show)
+
+$(deriveJSON defaultOptions ''Recipe)
 
 data ModType
     = Zip FilePath
@@ -93,35 +115,39 @@ maybeToRight :: e -> Maybe a -> Either e a
 maybeToRight e = maybe (Left e) Right
 
 modReference :: String -> String
-modReference string = "__" <> (reverse . L.drop 1 . snd . break ('_' ==) $ reverse string)  <> "__"
+modReference string = "__"
+    <> (reverse . L.drop 1 . dropWhile ('_' /=) $ reverse string)
+    <> "__"
 
 associateMods :: FilePath -> FilePath -> IO ModAssociation
 associateMods modsDir internalDir = do
     (zips, dirs) <- findMods modsDir
-    let zipPairs = zip (modReference . dropExtension <$> zips) $ fmap (Zip . (modsDir </>)) zips
+    let zipPairs = zip (modReference . dropExtension <$> zips)
+            $ fmap (Zip . (modsDir </>)) zips
     pure . M.fromList
         $ zipPairs
-        <> (zip (fmap (modReference) dirs) $ fmap (Directory . (modsDir </>)) dirs)
+        <> zip (fmap modReference dirs)
+            (fmap (Directory . (modsDir </>)) dirs)
         <> internalMods internalDir
 
-copyImages :: FilePath -> FilePath -> FilePath -> [RecipeWithImage] -> IO ()
+copyImages :: FilePath -> FilePath -> FilePath -> [Recipe] -> IO ()
 copyImages modsDir internalDir dstDir recipes = do
-    putStrLn $ "dstDir: " <> show dstDir
     associatedMods <- associateMods modsDir internalDir
     mapM_ (copyImages' associatedMods) icons
   where
     icons = fmap splitModNameAndPath . mconcat
         $ fmap (fmap iconPartIcon . elems . icon) recipes
 
-    copyImages' associatedMods (name, path) = do
-        putStrLn $ "asdfasdf2aasdasdfasdf: " <> name </> L.drop 1 path
+    copyImages' associatedMods (name, path) =
         case associatedMods M.!? name of
             Just (Directory dir) -> do
-                putStrLn $ "Copying from: " <> show (dir </> path) <> " to: " <> dstPath
+                putStrLn $ "Copying from: " <> show (dir </> path) <> " to: "
+                    <> dstPath
                 createDirectoryIfMissing True $ takeDirectory dstPath
-                copyFile (dir </> path) $ dstPath
+                copyFile (dir </> path) dstPath
             Just (Zip zipFile) -> do
-                putStrLn $ "Unziping: " <> show zipFile <> " from: " <> show path <> " to: " <> dstPath
+                putStrLn $ "Unziping: " <> show zipFile <> " from: "
+                    <> show path <> " to: " <> dstPath
                 unzipImage zipFile path dstPath
             Nothing -> do
                 print $ name <> "missing in associatedMods"
@@ -129,17 +155,20 @@ copyImages modsDir internalDir dstDir recipes = do
       where
         dstPath = dstDir </> name </> path
 
-pairRecipeAndImages :: RawData -> [RecipeWithImage]
+pairRecipeAndImages :: RawData -> [Recipe]
 pairRecipeAndImages rawData@RawData{..} =
-    fmap (pairRecipeAndImage rawData) $ elems recipe
+    pairRecipeAndImage rawData <$> elems recipe
 
 pairRecipeAndImage
     :: RawData
+    -> RD.Recipe
     -> Recipe
-    -> RecipeWithImage
-pairRecipeAndImage RawData{..} Recipe{..} = RecipeWithImage
+pairRecipeAndImage RawData{..} rec@RD.Recipe{..} = Recipe
     { name = recipeName
-    , ingredients = maybe [] (fmap toIngredient . M.elems) recipeIngredients
+    , ingredients =
+        concatMap (fmap toIngredient . M.elems) recipeIngredients
+    , results =
+        rootResult <> F.concat (fmap (fmap toResult . M.elems) recipeResults)
     , icon = fromMaybe M.empty $
         fmap toSingleIcon recipeIcon
         <|> recipeIcons
@@ -152,7 +181,23 @@ pairRecipeAndImage RawData{..} Recipe{..} = RecipeWithImage
     toIngredient :: RD.Ingredient -> Ingredient
     toIngredient RD.Ingredient{..} = Ingredient
         { ingredientName = ingredientName
-        , ingredientAmount = read ingredientName
+        , ingredientAmount = read ingredientAmount
+        }
+
+    rootResult :: [Result]
+    rootResult = F.toList $ do
+        name <- recipeResult
+        pure $ Result
+            { resultName = name
+            , resultAmount = maybe 1 read recipeResult_count
+            , resultProbablity = 1
+            }
+
+    toResult :: RD.Results -> Result
+    toResult RD.Results{..} = Result
+        { resultName = resultName
+        , resultAmount = maybe 1 read resultAmount
+        , resultProbablity = maybe 1 read resultProbablity
         }
 
     resultIcon :: Maybe (Map String IconPart)
@@ -161,7 +206,7 @@ pairRecipeAndImage RawData{..} Recipe{..} = RecipeWithImage
     resultsIcon :: Maybe (Map String IconPart)
     resultsIcon = recipeResults
         >>= (listToMaybe . elems)
-        >>= (\Results{..} -> getItemFluidIcon resultName)
+        >>= (\RD.Results{..} -> getItemFluidIcon resultName)
 
     normalResultIcon :: Maybe (Map String IconPart)
     normalResultIcon = recipeNormal
@@ -201,7 +246,7 @@ pairRecipeAndImage RawData{..} Recipe{..} = RecipeWithImage
             -> (a -> Maybe String)
             -> (a -> Maybe (Map String IconPart))
             -> Maybe (Map String IconPart)
-        magic x g h = ((flip M.lookup) x $ name) >>=
+        magic x g h = M.lookup name x >>=
             (\v -> fmap toSingleIcon (g v) <|> h v)
 
 eitherToFail :: Either String a -> IO a
@@ -213,8 +258,13 @@ run = do
     data' <- B.readFile "purescript/data-raw-nice.json"
         >>= (eitherToFail . eitherDecodeStrict @RawData)
 
+    let parsedData = pairRecipeAndImages data'
     copyImages
         "/home/yrid/.factorio/mods"
         "/home/yrid/.steam/steam/steamapps/common/Factorio/data"
-        "/home/yrid/factorio-images/"
-        $ pairRecipeAndImages data'
+        outputDir
+        parsedData
+
+    BL.writeFile (outputDir </> "data.json") $ encode parsedData
+  where
+    outputDir = "/home/yrid/factorio-images/"
