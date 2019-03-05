@@ -85,7 +85,7 @@ data Recipe = Recipe
     { name :: String
     , ingredients :: [Ingredient]
     , results :: [Result]
-    , icon :: Map String IconPart
+    , icon :: [IconPart]
     }
   deriving (Show)
 
@@ -136,7 +136,7 @@ copyImages modsDir internalDir dstDir recipes = do
     mapM_ (copyImages' associatedMods) icons
   where
     icons = fmap splitModNameAndPath . mconcat
-        $ fmap (fmap iconPartIcon . elems . icon) recipes
+        $ fmap (fmap iconPartIcon . icon) recipes
 
     copyImages' associatedMods (name, path) =
         case associatedMods M.!? name of
@@ -169,7 +169,7 @@ pairRecipeAndImage RawData{..} rec@RD.Recipe{..} = Recipe
         concatMap (fmap toIngredient . M.elems) recipeIngredients
     , results =
         rootResult <> F.concat (fmap (fmap toResult . M.elems) recipeResults)
-    , icon = fromMaybe M.empty $
+    , icon = M.elems . fromMaybe M.empty $
         fmap toSingleIcon recipeIcon
         <|> recipeIcons
         <|> resultIcon
