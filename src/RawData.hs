@@ -26,6 +26,7 @@ module RawData
     , Recipe(..)
     , RepairTool(..)
     , Results(..)
+    , Shift(..)
     , Tool(..)
     )
   where
@@ -126,12 +127,21 @@ $(deriveJSON
     ''InputOutput)
 
 data Shift = Shift
-    { _1 :: String
-    , _2 :: String
+    { x :: String
+    , y :: String
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions{fieldLabelModifier = L.drop 1} ''Shift)
+instance FromJSON Shift where
+    parseJSON = withObject "Shift" $ \v -> Shift
+        <$> v .: "1"
+        <*> v .: "2"
+
+instance ToJSON Shift where
+    toJSON Shift{..} = object
+        [ "x" .= x
+        , "y" .= y
+        ]
 
 data IconPart = IconPart
     { iconPartIcon :: String
@@ -159,6 +169,7 @@ data Recipe = Recipe
     , recipeResult_count :: Maybe String
     , recipeSubgroup :: Maybe String
     , recipeOrder :: Maybe String
+    , recipeEnergy_required :: String
     }
   deriving (Show)
 

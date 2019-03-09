@@ -7,12 +7,8 @@
 {-# LANGUAGE TypeApplications #-}
 
 module Lib
-    ( ZipPath
-    , unzipImage
+    ( Configuration(..)
     , run
-    , Recipe(..)
-    , findMods
-    , modReference
     )
   where
 
@@ -45,7 +41,6 @@ import System.FilePath
     , takeFileName
     )
 
-import RawData hiding (Ingredient, Results, Recipe)
 import qualified RawData as RD
 
 
@@ -80,6 +75,34 @@ data Result = Result
 $(deriveJSON
     defaultOptions{fieldLabelModifier = fmap toLower . L.drop 6}
     ''Result)
+
+data Shift = Shift
+    { x :: Int
+    , y :: Int
+    }
+  deriving (Show)
+
+instance FromJSON Shift where
+    parseJSON = withObject "Shift" $ \v -> Shift
+        <$> v .: "1"
+        <*> v .: "2"
+
+instance ToJSON Shift where
+    toJSON Shift{..} = object
+        [ "x" .= x
+        , "y" .= y
+        ]
+
+data IconPart = IconPart
+    { iconPartIcon :: String
+    , iconPartShift :: Maybe Shift
+    , iconPartScale :: Maybe Float
+    }
+  deriving (Show)
+
+$(deriveJSON
+    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 8}
+    ''IconPart)
 
 data Recipe = Recipe
     { name :: String
@@ -155,15 +178,28 @@ copyImages modsDir internalDir dstDir recipes = do
       where
         dstPath = dstDir </> name </> path
 
-pairRecipeAndImages :: RawData -> [Recipe]
-pairRecipeAndImages rawData@RawData{..} =
+pairRecipeAndImages :: RD.RawData -> [Recipe]
+pairRecipeAndImages rawData@RD.RawData{..} =
     pairRecipeAndImage rawData <$> elems recipe
 
+toIconPart :: RD.IconPart -> IconPart
+toIconPart RD.IconPart{..} = IconPart
+    { iconPartIcon = iconPartIcon
+    , iconPartScale = fmap read iconPartScale
+    , iconPartShift = fmap toShift iconPartShift
+    }
+
+toShift :: RD.Shift -> Shift
+toShift RD.Shift{..} = Shift
+    { x = read x
+    , y = read y
+    }
+
 pairRecipeAndImage
-    :: RawData
+    :: RD.RawData
     -> RD.Recipe
     -> Recipe
-pairRecipeAndImage RawData{..} rec@RD.Recipe{..} = Recipe
+pairRecipeAndImage RD.RawData{..} rec@RD.Recipe{..} = Recipe
     { name = recipeName
     , ingredients =
         concatMap (fmap toIngredient . M.elems) recipeIngredients
@@ -171,7 +207,7 @@ pairRecipeAndImage RawData{..} rec@RD.Recipe{..} = Recipe
         rootResult <> F.concat (fmap (fmap toResult . M.elems) recipeResults)
     , icon = M.elems . fromMaybe M.empty $
         fmap toSingleIcon recipeIcon
-        <|> recipeIcons
+        <|> fmap (fmap toIconPart) recipeIcons
         <|> resultIcon
         <|> resultsIcon
         <|> normalResultIcon
@@ -210,61 +246,67 @@ pairRecipeAndImage RawData{..} rec@RD.Recipe{..} = Recipe
 
     normalResultIcon :: Maybe (Map String IconPart)
     normalResultIcon = recipeNormal
-        >>= inputOutputResult >>= getItemFluidIcon
+        >>= RD.inputOutputResult >>= getItemFluidIcon
 
     normalResultsIcon :: Maybe (Map String IconPart)
     normalResultsIcon = recipeNormal
-        >>= inputOutputResults
+        >>= RD.inputOutputResults
         >>= (listToMaybe . elems)
         >>= (\RD.Ingredient{..} -> getItemFluidIcon ingredientName)
 
     toSingleIcon :: String -> Map String IconPart
-    toSingleIcon = M.singleton "1" . toIconPart
+    toSingleIcon = M.singleton "1" . simpleIconPart
 
-    toIconPart v = IconPart v Nothing Nothing
+    simpleIconPart v = IconPart v Nothing Nothing
 
     getItemFluidIcon :: String -> Maybe (Map String IconPart)
-    getItemFluidIcon name = magic item itemIcon itemIcons
-        <|> magic fluid fluidIcon fluidIcons
-        <|> magic ammo ammoIcon ammoIcons
-        <|> magic miningTools miningToolsIcon miningToolsIcons
-        <|> magic car carIcon carIcons
-        <|> magic tool toolIcon toolIcons
-        <|> magic gun gunIcon gunIcons
-        <|> magic module' moduleIcon moduleIcons
-        <|> magic capsule capsuleIcon capsuleIcons
-        <|> magic repairTool repairToolIcon repairToolIcons
-        <|> magic armor armorIcon armorIcons
-        <|> magic railPlanner railPlannerIcon railPlannerIcons
-        <|> magic locomotive locomotiveIcon locomotiveIcons
-        <|> magic fluidWagon fluidWagonIcon fluidWagonIcons
-        <|> magic cargoWagon cargoWagonIcon cargoWagonIcons
-        <|> magic artilleryWagon artilleryWagonIcon artilleryWagonIcons
+    getItemFluidIcon name = magic item RD.itemIcon RD.itemIcons
+        <|> magic fluid RD.fluidIcon RD.fluidIcons
+        <|> magic ammo RD.ammoIcon RD.ammoIcons
+        <|> magic miningTools RD.miningToolsIcon RD.miningToolsIcons
+        <|> magic car RD.carIcon RD.carIcons
+        <|> magic tool RD.toolIcon RD.toolIcons
+        <|> magic gun RD.gunIcon RD.gunIcons
+        <|> magic module' RD.moduleIcon RD.moduleIcons
+        <|> magic capsule RD.capsuleIcon RD.capsuleIcons
+        <|> magic repairTool RD.repairToolIcon RD.repairToolIcons
+        <|> magic armor RD.armorIcon RD.armorIcons
+        <|> magic railPlanner RD.railPlannerIcon RD.railPlannerIcons
+        <|> magic locomotive RD.locomotiveIcon RD.locomotiveIcons
+        <|> magic fluidWagon RD.fluidWagonIcon RD.fluidWagonIcons
+        <|> magic cargoWagon RD.cargoWagonIcon RD.cargoWagonIcons
+        <|> magic artilleryWagon RD.artilleryWagonIcon RD.artilleryWagonIcons
       where
         magic
             :: Map String a
             -> (a -> Maybe String)
-            -> (a -> Maybe (Map String IconPart))
+            -> (a -> Maybe (Map String RD.IconPart))
             -> Maybe (Map String IconPart)
-        magic x g h = M.lookup name x >>=
-            (\v -> fmap toSingleIcon (g v) <|> h v)
+        magic x g h = do
+            v <- M.lookup name x
+            fmap toSingleIcon (g v) <|> (fmap (fmap toIconPart) $ h v)
 
 eitherToFail :: Either String a -> IO a
 eitherToFail (Right a) = pure a
 eitherToFail (Left e) = fail e
 
-run :: IO ()
-run = do
-    data' <- B.readFile "purescript/data-raw-nice.json"
-        >>= (eitherToFail . eitherDecodeStrict @RawData)
+data Configuration = Configuration
+    { rawDataPath :: FilePath
+    , factorioModsDirPath :: FilePath
+    , factorioDataDirPath :: FilePath
+    , outputDir :: FilePath
+    }
+
+run :: Configuration -> IO ()
+run Configuration{..} = do
+    data' <- B.readFile rawDataPath
+        >>= (eitherToFail . eitherDecodeStrict @RD.RawData)
 
     let parsedData = pairRecipeAndImages data'
     copyImages
-        "/home/yrid/.factorio/mods"
-        "/home/yrid/.steam/steam/steamapps/common/Factorio/data"
+        factorioModsDirPath
+        factorioDataDirPath
         outputDir
         parsedData
 
     BL.writeFile (outputDir </> "data.json") $ encode parsedData
-  where
-    outputDir = "/home/yrid/factorio-images/"
