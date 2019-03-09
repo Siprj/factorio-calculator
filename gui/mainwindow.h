@@ -2,9 +2,12 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QVBoxLayout>
+#include <QTreeWidgetItem>
+#include <QSharedPointer>
 
 #include "recipe.h"
-#include "recipeviewmodel.h"
+#include "recipelist.h"
 
 
 namespace Ui {
@@ -19,13 +22,15 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-public slots:
-    void clearModel();
+private slots:
+    void showRecipeDetails(Recipe recipe);
 
 private:
     Ui::MainWindow *ui;
     Recipes recipes;
-    RecipeViewModel model;
+    RecipeList recipList;
+
+    QList<QSharedPointer<QTreeWidgetItem>> recipDetailsItems;
 };
 
 #endif // MAINWINDOW_H

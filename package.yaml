@@ -20,6 +20,15 @@ description: >
 
 dependencies:
   - base >= 4.7 && < 5
+  - filepath
+  - aeson
+  - bytestring
+  - containers
+  - directory
+  - text
+  - zip
+  - extra
+  - mtl
 
 library:
   source-dirs: src
@@ -27,16 +36,6 @@ library:
     - -O2
     - -static
     - -fPIC
-  dependencies:
-    - aeson
-    - bytestring
-    - containers
-    - directory
-    - filepath
-    - text
-    - zip
-    - extra
-    - mtl
 
 executables:
   calculator:
@@ -49,6 +48,7 @@ executables:
       - -static
     dependencies:
       - factorio-calculator
+      - optparse-applicative
 
 tests:
   factorio-calculator-test:

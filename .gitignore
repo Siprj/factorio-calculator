@@ -1,2 +1,10 @@
 *.cabal
 .stack-work
+*.o
+moc_*.cpp
+moc_*.h
+moc_*.o
+*.stash
+Makefile
+*.pro.user
+ui_*.h

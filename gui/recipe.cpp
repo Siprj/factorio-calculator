@@ -2,6 +2,8 @@
 
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QDebug>
+
 
 Recipe Recipe::fromJsonObject(QJsonObject obj)
 {
@@ -37,7 +39,15 @@ Ingredient Ingredient::fromJsonObject(QJsonObject obj)
 
 Icon Icon::fromJsonObject(QJsonObject obj)
 {
-    return { obj.value("icon").toString() };
+    std::optional<Shift> shift;
+    if (obj.contains("shift") && obj.value("shift").isObject())
+    {
+        shift = std::make_optional(Shift::fromJsonObject(obj.value("shift").toObject()));
+    }
+    double scale = 1.0;
+    if (obj.contains("scale") && obj.value("scale").isDouble())
+        scale = obj.value("scale").toDouble();
+    return { obj.value("icon").toString(), scale, shift};
 }
 
 Result Result::fromJsonObject(QJsonObject obj)
@@ -56,4 +66,12 @@ Recipes fromJsonObject(QJsonValue obj)
         recipes.append(Recipe::fromJsonObject(val.toObject()));
     }
     return { recipes };
+}
+
+Shift Shift::fromJsonObject(QJsonObject obj)
+{
+    return
+        { obj.value("x").toInt()
+        , obj.value("y").toInt()
+        };
 }

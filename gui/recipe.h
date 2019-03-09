@@ -6,6 +6,9 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
+#include <optional>
+
+
 struct Ingredient
 {
     QString name;
@@ -14,9 +17,18 @@ struct Ingredient
     static Ingredient fromJsonObject(QJsonObject);
 };
 
+struct Shift
+{
+    int x;
+    int y;
+    static Shift fromJsonObject(QJsonObject obj);
+};
+
 struct Icon
 {
     QString filePath;
+    double scale;
+    std::optional<Shift> shift;
 
     static Icon fromJsonObject(QJsonObject obj);
 };
