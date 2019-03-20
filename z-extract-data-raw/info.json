@@ -1,14 +1,14 @@
 {
   "name": "z-extract-data-raw",
   "version": "1.0.0",
-  "title": "Expose data.raw",
-  "author": "Sparr",
+  "title": "Factorio calculator",
+  "author": "Jan Sipr",
   "homepage": "http://github.com/sparr/factorio-mod-expose-data-raw",
-  "contact": "sparr0@gmail.com",
-  "description": "Serializes data.raw to a dummy entity, to be read at runtime.",
+  "contact": "sipr.jan@gmail.com",
+  "description": "Serializes data.raw to a dummy entity, to be written into a file later",
   "dependencies": [
     "base >= 0.12.0",
     "? SeaBlock >= 0.1.0"
   ],
-  "factorio_version": "0.16"
+  "factorio_version": "0.17"
 }

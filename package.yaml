@@ -24,11 +24,13 @@ dependencies:
   - aeson
   - bytestring
   - containers
+  - unordered-containers
   - directory
   - text
   - zip
   - extra
   - mtl
+  - vector
 
 library:
   source-dirs: src

@@ -1,23 +1,8 @@
+local json = require "json"
+
+
 local button_name = "generate-data-raw-file"
 local initialized = false
-
-local function toJson(data)
-    if type(data) ~= "table" then
-        error("Data is not a table!!!")
-    end
-
-    local jsonTable = {}
-    for k,v in pairs(data) do
-        local jsonFeild = "\"" .. k .. "\": "
-        if type(v) == "table" then
-            jsonFeild = jsonFeild .. toJson(v)
-        else
-            jsonFeild = jsonFeild .. "\"" .. tostring(v) .. "\""
-        end
-        table.insert(jsonTable, jsonFeild)
-    end
-    return "{" .. table.concat(jsonTable, ",\n") .. "}"
-end
 
 local function go()
     local count = game.entity_prototypes["DATA_RAW_COUNT"].order
@@ -29,9 +14,61 @@ local function go()
             game.entity_prototypes["DATA_RAW"..index].order)
     end
     data_str = table.concat(data_chunks, "")
-    loadstring(data_str)
     data = {raw = loadstring(data_str)}
-    game.write_file("data-raw.json", toJson(data.raw()))
+    game.write_file("data-raw.json", json.encode(data.raw()))
+
+    local ingameData = {}
+    local recipes = {}
+    for k, recipe in pairs(game.forces.player.recipes) do
+        local tmp = {
+            name = recipe.name,
+            category = recipe.category,
+            ingredients = recipe.ingredients,
+            products = recipe.products,
+            energy = recipe.energy
+        }
+        table.insert(recipes, tmp)
+    end
+    ingameData.inGameRecipes = recipes
+
+    local craftingMachines = {}
+    for k, entity in pairs(game.entity_prototypes) do
+        local categories = entity.crafting_categories
+        if categories ~= nil then
+            local tmp = {
+                name = k,
+                categories = entity.crafting_categories,
+                craftingSpeed = entity.crafting_speed,
+                ingredientCount = entity.ingredient_count,
+                moduleSlots = 0
+            }
+            local module_slots = entity.module_inventory_size
+            if module_slots ~= nil then
+                tmp.moduleSlots = module_slots
+            else
+                tmp.moduleSlots = 0
+            end
+            table.insert(craftingMachines, tmp)
+        end
+    end
+    ingameData.inGameCraftingMachines = craftingMachines
+
+    local modules = {}
+    for k, module in pairs(game.item_prototypes) do
+        local module_effects = module.module_effects
+        if module_effects ~= nil then
+            local tmp = {
+                name = k,
+                effects = module.module_effects,
+                category = module.category,
+                tier = module.tier,
+                limitations = module.limitations
+            }
+            table.insert(modules, tmp)
+        end
+    end
+    ingameData.inGameModules = modules
+    game.write_file("data-ingame.json", json.encode(ingameData))
 end
 
 local function on_gui_click(event)
@@ -39,7 +76,6 @@ local function on_gui_click(event)
         go()
     end
 end
-
 
 script.on_event(defines.events.on_gui_click, on_gui_click)
 script.on_event(defines.events.on_tick, function(event)

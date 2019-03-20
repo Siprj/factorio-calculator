@@ -178,113 +178,100 @@ copyImages modsDir internalDir dstDir recipes = do
       where
         dstPath = dstDir </> name </> path
 
-pairRecipeAndImages :: RD.RawData -> [Recipe]
-pairRecipeAndImages rawData@RD.RawData{..} =
-    pairRecipeAndImage rawData <$> elems recipe
+-- pairRecipeAndImages :: RD.RawData -> [Recipe]
+-- pairRecipeAndImages rawData@RD.RawData{..} =
+--     pairRecipeAndImage rawData <$> elems recipe
 
-toIconPart :: RD.IconPart -> IconPart
-toIconPart RD.IconPart{..} = IconPart
-    { iconPartIcon = iconPartIcon
-    , iconPartScale = fmap read iconPartScale
-    , iconPartShift = fmap toShift iconPartShift
-    }
-
-toShift :: RD.Shift -> Shift
-toShift RD.Shift{..} = Shift
-    { x = read x
-    , y = read y
-    }
-
-pairRecipeAndImage
-    :: RD.RawData
-    -> RD.Recipe
-    -> Recipe
-pairRecipeAndImage RD.RawData{..} rec@RD.Recipe{..} = Recipe
-    { name = recipeName
-    , ingredients =
-        concatMap (fmap toIngredient . M.elems) recipeIngredients
-    , results =
-        rootResult <> F.concat (fmap (fmap toResult . M.elems) recipeResults)
-    , icon = M.elems . fromMaybe M.empty $
-        fmap toSingleIcon recipeIcon
-        <|> fmap (fmap toIconPart) recipeIcons
-        <|> resultIcon
-        <|> resultsIcon
-        <|> normalResultIcon
-        <|> normalResultsIcon
-    }
-  where
-    toIngredient :: RD.Ingredient -> Ingredient
-    toIngredient RD.Ingredient{..} = Ingredient
-        { ingredientName = ingredientName
-        , ingredientAmount = read ingredientAmount
-        }
-
-    rootResult :: [Result]
-    rootResult = F.toList $ do
-        name <- recipeResult
-        pure $ Result
-            { resultName = name
-            , resultAmount = maybe 1 read recipeResult_count
-            , resultProbablity = 1
-            }
-
-    toResult :: RD.Results -> Result
-    toResult RD.Results{..} = Result
-        { resultName = resultName
-        , resultAmount = maybe 1 read resultAmount
-        , resultProbablity = maybe 1 read resultProbablity
-        }
-
-    resultIcon :: Maybe (Map String IconPart)
-    resultIcon = recipeResult >>= getItemFluidIcon
-
-    resultsIcon :: Maybe (Map String IconPart)
-    resultsIcon = recipeResults
-        >>= (listToMaybe . elems)
-        >>= (\RD.Results{..} -> getItemFluidIcon resultName)
-
-    normalResultIcon :: Maybe (Map String IconPart)
-    normalResultIcon = recipeNormal
-        >>= RD.inputOutputResult >>= getItemFluidIcon
-
-    normalResultsIcon :: Maybe (Map String IconPart)
-    normalResultsIcon = recipeNormal
-        >>= RD.inputOutputResults
-        >>= (listToMaybe . elems)
-        >>= (\RD.Ingredient{..} -> getItemFluidIcon ingredientName)
-
-    toSingleIcon :: String -> Map String IconPart
-    toSingleIcon = M.singleton "1" . simpleIconPart
-
-    simpleIconPart v = IconPart v Nothing Nothing
-
-    getItemFluidIcon :: String -> Maybe (Map String IconPart)
-    getItemFluidIcon name = magic item RD.itemIcon RD.itemIcons
-        <|> magic fluid RD.fluidIcon RD.fluidIcons
-        <|> magic ammo RD.ammoIcon RD.ammoIcons
-        <|> magic miningTools RD.miningToolsIcon RD.miningToolsIcons
-        <|> magic car RD.carIcon RD.carIcons
-        <|> magic tool RD.toolIcon RD.toolIcons
-        <|> magic gun RD.gunIcon RD.gunIcons
-        <|> magic module' RD.moduleIcon RD.moduleIcons
-        <|> magic capsule RD.capsuleIcon RD.capsuleIcons
-        <|> magic repairTool RD.repairToolIcon RD.repairToolIcons
-        <|> magic armor RD.armorIcon RD.armorIcons
-        <|> magic railPlanner RD.railPlannerIcon RD.railPlannerIcons
-        <|> magic locomotive RD.locomotiveIcon RD.locomotiveIcons
-        <|> magic fluidWagon RD.fluidWagonIcon RD.fluidWagonIcons
-        <|> magic cargoWagon RD.cargoWagonIcon RD.cargoWagonIcons
-        <|> magic artilleryWagon RD.artilleryWagonIcon RD.artilleryWagonIcons
-      where
-        magic
-            :: Map String a
-            -> (a -> Maybe String)
-            -> (a -> Maybe (Map String RD.IconPart))
-            -> Maybe (Map String IconPart)
-        magic x g h = do
-            v <- M.lookup name x
-            fmap toSingleIcon (g v) <|> (fmap (fmap toIconPart) $ h v)
+-- pairRecipeAndImage
+--     :: RD.RawData
+--     -> RD.Recipe
+--     -> Recipe
+-- pairRecipeAndImage RD.RawData{..} rec@RD.Recipe{..} = Recipe
+--     { name = recipeName
+--     , ingredients =
+--         concatMap (fmap toIngredient . M.elems) recipeIngredients
+--     , results =
+--         rootResult <> F.concat (fmap (fmap toResult . M.elems) recipeResults)
+--     , icon = M.elems . fromMaybe M.empty $
+--         fmap toSingleIcon recipeIcon
+--         <|> fmap (fmap toIconPart) recipeIcons
+--         <|> resultIcon
+--         <|> resultsIcon
+--         <|> normalResultIcon
+--         <|> normalResultsIcon
+--     }
+--   where
+--     toIngredient :: RD.Ingredient -> Ingredient
+--     toIngredient RD.Ingredient{..} = Ingredient
+--         { ingredientName = ingredientName
+--         , ingredientAmount = read ingredientAmount
+--         }
+--
+--     rootResult :: [Result]
+--     rootResult = F.toList $ do
+--         name <- recipeResult
+--         pure $ Result
+--             { resultName = name
+--             , resultAmount = maybe 1 read recipeResult_count
+--             , resultProbablity = 1
+--             }
+--
+--     toResult :: RD.Results -> Result
+--     toResult RD.Results{..} = Result
+--         { resultName = resultName
+--         , resultAmount = maybe 1 read resultAmount
+--         , resultProbablity = maybe 1 read resultProbablity
+--         }
+--
+--     resultIcon :: Maybe (Map String IconPart)
+--     resultIcon = recipeResult >>= getItemFluidIcon
+--
+--     resultsIcon :: Maybe (Map String IconPart)
+--     resultsIcon = recipeResults
+--         >>= (listToMaybe . elems)
+--         >>= (\RD.Results{..} -> getItemFluidIcon resultName)
+--
+--     normalResultIcon :: Maybe (Map String IconPart)
+--     normalResultIcon = recipeNormal
+--         >>= RD.inputOutputResult >>= getItemFluidIcon
+--
+--     normalResultsIcon :: Maybe (Map String IconPart)
+--     normalResultsIcon = recipeNormal
+--         >>= RD.inputOutputResults
+--         >>= (listToMaybe . elems)
+--         >>= (\RD.Ingredient{..} -> getItemFluidIcon ingredientName)
+--
+--     toSingleIcon :: String -> Map String IconPart
+--     toSingleIcon = M.singleton "1" . simpleIconPart
+--
+--     simpleIconPart v = IconPart v Nothing Nothing
+--
+--     getItemFluidIcon :: String -> Maybe (Map String IconPart)
+--     getItemFluidIcon name = magic item RD.itemIcon RD.itemIcons
+--         <|> magic fluid RD.fluidIcon RD.fluidIcons
+--         <|> magic ammo RD.ammoIcon RD.ammoIcons
+--         <|> magic miningTools RD.miningToolsIcon RD.miningToolsIcons
+--         <|> magic car RD.carIcon RD.carIcons
+--         <|> magic tool RD.toolIcon RD.toolIcons
+--         <|> magic gun RD.gunIcon RD.gunIcons
+--         <|> magic module' RD.moduleIcon RD.moduleIcons
+--         <|> magic capsule RD.capsuleIcon RD.capsuleIcons
+--         <|> magic repairTool RD.repairToolIcon RD.repairToolIcons
+--         <|> magic armor RD.armorIcon RD.armorIcons
+--         <|> magic railPlanner RD.railPlannerIcon RD.railPlannerIcons
+--         <|> magic locomotive RD.locomotiveIcon RD.locomotiveIcons
+--         <|> magic fluidWagon RD.fluidWagonIcon RD.fluidWagonIcons
+--         <|> magic cargoWagon RD.cargoWagonIcon RD.cargoWagonIcons
+--         <|> magic artilleryWagon RD.artilleryWagonIcon RD.artilleryWagonIcons
+--       where
+--         magic
+--             :: Map String a
+--             -> (a -> Maybe String)
+--             -> (a -> Maybe (Map String RD.IconPart))
+--             -> Maybe (Map String IconPart)
+--         magic x g h = do
+--             v <- M.lookup name x
+--             fmap toSingleIcon (g v) <|> (fmap (fmap toIconPart) $ h v)
 
 eitherToFail :: Either String a -> IO a
 eitherToFail (Right a) = pure a
@@ -301,12 +288,15 @@ run :: Configuration -> IO ()
 run Configuration{..} = do
     data' <- B.readFile rawDataPath
         >>= (eitherToFail . eitherDecodeStrict @RD.RawData)
-
-    let parsedData = pairRecipeAndImages data'
-    copyImages
-        factorioModsDirPath
-        factorioDataDirPath
-        outputDir
-        parsedData
-
-    BL.writeFile (outputDir </> "data.json") $ encode parsedData
+    print data'
+--    data' <- B.readFile rawDataPath
+--        >>= (eitherToFail . eitherDecodeStrict @RD.RawData)
+--
+--    let parsedData = pairRecipeAndImages data'
+--    copyImages
+--        factorioModsDirPath
+--        factorioDataDirPath
+--        outputDir
+--        parsedData
+--
+--    BL.writeFile (outputDir </> "data.json") $ encode parsedData

@@ -1,44 +1,35 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 
 module RawData
-    ( Ammo(..)
-    , Armor(..)
-    , ArtilleryWagon(..)
-    , Capsule(..)
-    , Car(..)
-    , CargoWagon(..)
-    , Fluid(..)
-    , FluidWagon(..)
-    , Gun(..)
-    , IconPart(..)
+    ( IconPart(..)
     , Ingredient(..)
     , InputOutput(..)
-    , Item(..)
     , ItemType(..)
-    , Locomotive(..)
-    , MiningTool(..)
-    , Module(..)
-    , RailPlanner(..)
     , RawData(..)
     , Recipe(..)
-    , RepairTool(..)
     , Results(..)
     , Shift(..)
-    , Tool(..)
+    , Item(..)
     )
   where
 
-import Control.Applicative ((<|>))
+import Control.Applicative ((<|>), many)
+import Control.Monad ((>=>))
 import Data.Aeson hiding (Result)
+import Data.Aeson.Types
 import Data.Aeson.TH
 import Data.Char
 import qualified Data.List as L
 import Data.Map
+import Data.Maybe
 import qualified Data.Map as M
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
+import qualified Data.Vector as V
 
 
 data ItemType
@@ -65,94 +56,64 @@ instance ToJSON ItemType where
 
 data Ingredient = Ingredient
     { ingredientName :: String
-    , ingredientAmount :: String
+    , ingredientAmount :: Int
     }
   deriving (Show)
 
-instance FromJSON Ingredient where
-    parseJSON = withObject "Ingredient" $ \v ->
-        Ingredient <$> v .: "1" <*> v .: "2"
-        <|> Ingredient <$> v .: "name" <*> v .: "amount"
+fromArray :: FromJSON a => Array -> Int -> Parser a
+fromArray a n = maybe fail' parseJSON $ a V.!? n
+  where
+    fail' = fail $ "Can't parse ingredient."
 
-instance ToJSON Ingredient where
-    toJSON Ingredient{..} = object
-        [ "name" .= ingredientName
-        , "amount" .= ingredientAmount
-        ]
+instance FromJSON Ingredient where
+    parseJSON (Object o) = Ingredient
+        <$> o .: "name"
+        <*> o .: "amount"
+    parseJSON (Array a) = Ingredient
+        <$> fromArray a 0
+        <*> fromArray a 1
+    parseJSON v = typeMismatch "Ingredient" v
 
 data Results = Results
     { resultType :: Maybe ItemType -- Probably defaults to "item"
     , resultName :: String
-    , resultProbablity :: Maybe String
-    , resultAmount :: Maybe String
-    , resultAmount_min :: Maybe String
-    , resultAmount_max :: Maybe String
+    , resultProbablity :: Maybe Float
+    , resultAmount :: Maybe Int
+    , resultAmount_min :: Maybe Float
+    , resultAmount_max :: Maybe Float
     }
   deriving (Show)
 
 instance FromJSON Results where
-    parseJSON = withObject "Results" $ \v ->
-        Results
-            <$> v .:? "type"
-            <*> v .: "name"
-            <*> v .:? "probablity"
-            <*> v .:? "amount"
-            <*> v .:? "amount_min"
-            <*> v .:? "amount_max"
-        <|> Results
-            <$> v .:? "type"
-            <*> v .: "1"
-            <*> v .:? "2"
-            <*> v .:? "probablity"
-            <*> v .:? "amount_min"
-            <*> v .:? "amount_max"
-
-instance ToJSON Results where
-    toJSON Results{..} = object
-        [ "name" .= resultName
-        , "amount" .= resultAmount
-        ]
+    parseJSON (Object o) = Results
+        <$> o .:? "type"
+        <*> o .: "name"
+        <*> o .:? "probability"
+        <*> o .:? "amount"
+        <*> o .:? "amount_min"
+        <*> o .:? "amount_max"
+    parseJSON (Array a) = do
+        name <- fromArray a 0
+        amount <- fromArray a 1
+        pure $ Results Nothing name Nothing amount Nothing Nothing
+    parseJSON v = typeMismatch "Results" v
 
 data InputOutput = InputOutput
-    { inputOutputIngredients :: Map String Ingredient
+    { inputOutputIngredients :: V.Vector Ingredient
     , inputOutputResult :: Maybe String
     , inputOutputResults :: Maybe (Map String Ingredient)
     , inputOutputRequester_paste_multiplier :: Maybe String
-    , inputOutputEnabled :: Maybe String
+    , inputOutputEnabled :: Maybe Bool
     }
   deriving (Show)
 
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 11}
-    ''InputOutput)
-
-data Shift = Shift
-    { x :: String
-    , y :: String
-    }
-  deriving (Show)
-
-instance FromJSON Shift where
-    parseJSON = withObject "Shift" $ \v -> Shift
-        <$> v .: "1"
-        <*> v .: "2"
-
-instance ToJSON Shift where
-    toJSON Shift{..} = object
-        [ "x" .= x
-        , "y" .= y
-        ]
-
-data IconPart = IconPart
-    { iconPartIcon :: String
-    , iconPartShift :: Maybe Shift
-    , iconPartScale :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 8}
-    ''IconPart)
+instance FromJSON InputOutput where
+    parseJSON = withObject "InputOutput" $ \v -> InputOutput
+        <$> v .: "ingredients"
+        <*> v .:? "result"
+        <*> v .:? "results"
+        <*> v .:? "requester_paste_multiplier"
+        <*> v .:? "enabled"
 
 data Recipe = Recipe
     { recipeType :: String
@@ -161,267 +122,123 @@ data Recipe = Recipe
     , recipeNormal :: Maybe InputOutput
     , recipeExpensive :: Maybe InputOutput
     , recipeMain_product :: Maybe String
-    , recipeIcon :: Maybe String
-    , recipeIcons :: Maybe (Map String IconPart)
-    , recipeIngredients :: Maybe (Map String Ingredient)
-    , recipeResults :: Maybe (Map String Results)
+    , recipeIcons :: Maybe [IconPart]
+    , recipeIngredients :: Maybe (V.Vector Ingredient)
+    , recipeResults :: Maybe (V.Vector Results)
     , recipeResult :: Maybe String
-    , recipeResult_count :: Maybe String
+    , recipeResult_count :: Maybe Int
     , recipeSubgroup :: Maybe String
     , recipeOrder :: Maybe String
-    , recipeEnergy_required :: String
+    , recipeEnergy_required :: Maybe Float
     }
   deriving (Show)
 
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 6}
-    ''Recipe)
+instance FromJSON Recipe where
+    parseJSON = withObject "Recipe" $ \v -> Recipe
+        <$> v .: "type"
+        <*> v .: "name"
+        <*> v .:? "category"
+        <*> v .:? "normal"
+        <*> v .:? "expensive"
+        <*> v .:? "main_product"
+        <*> getIcons v
+        <*> v .:? "ingredients"
+        <*> v .:? "results"
+        <*> v .:? "result"
+        <*> v .:? "result_count"
+        <*> v .:? "subgroup"
+        <*> v .:? "order"
+        <*> v .:? "energy_required"
+      where
+        getIcons :: Object -> Parser (Maybe [IconPart])
+        getIcons v = fmap (pure . pure . createIcon) (v .: "icon")
+            <|> (fmap pure $ v .: "icons")
+            <|> pure Nothing
+
+        createIcon p = IconPart p Nothing Nothing
+
+data IconPart = IconPart
+    { iconPath :: String
+    , scale :: Maybe Float
+    , shift :: Maybe Shift
+    }
+  deriving (Show)
+
+instance FromJSON IconPart where
+    parseJSON = withObject "IconPart" $ \v -> IconPart
+        <$> v .: "icon"
+        <*> v .:? "scale"
+        <*> v .:? "shift"
+
+data Shift = Shift
+    { x2 :: Int
+    , y2 :: Int
+    }
+  deriving (Show)
+
+instance FromJSON Shift where
+    parseJSON = parseJSON >=> fromArray
+      where
+        fail' = fail $ "Can't parse shift."
+
+        fromArray :: V.Vector Int -> Parser Shift
+        fromArray a = maybe fail' pure $ do Shift
+            <$> a V.!? 0
+            <*> a V.!? 1
 
 data Item = Item
-    { itemType :: ItemType
-    , itemName :: String
-    , itemIcon :: Maybe String
-    , itemIcons :: Maybe (Map String IconPart)
-    , itemSubgroup :: String
-    , itemFuel_value :: Maybe String
+    { item2Name :: String
+    , item2Type :: String
+    , item2Icons :: [IconPart]
     }
   deriving (Show)
 
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 4}
-    ''Item)
+instance FromJSON Item where
+    parseJSON = withObject "Item" $ \v -> do
+        name' <- v .: "name"
+        type' <- v .: "type"
+        icons' <- getIcons v
+        pure $ Item name' type' icons'
+      where
+        getIcons :: Object -> Parser [IconPart]
+        getIcons v = fmap (pure . createIcon) (v .: "icon")
+            <|> v .: "icons"
 
-data Fluid = Fluid
-    { fluidType :: String
-    , fluidName :: String
-    , fluidIcon :: Maybe String
-    , fluidIcons :: Maybe (Map String IconPart)
-    , fluidSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 5}
-    ''Fluid)
-
-data Ammo = Ammo
-    { ammoType :: String
-    , ammoName :: String
-    , ammoIcon :: Maybe String
-    , ammoIcons :: Maybe (Map String IconPart)
-    , ammoSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 4}
-    ''Ammo)
-
-data MiningTool = MiningTool
-    { miningToolsType :: String
-    , miningToolsName :: String
-    , miningToolsIcon :: Maybe String
-    , miningToolsIcons :: Maybe (Map String IconPart)
-    , miningToolsSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 11}
-    ''MiningTool)
-
-data Car = Car
-    { carType :: String
-    , carName :: String
-    , carIcon :: Maybe String
-    , carIcons :: Maybe (Map String IconPart)
-    , carSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 3}
-    ''Car)
-
-data Tool = Tool
-    { toolType :: String
-    , toolName :: String
-    , toolIcon :: Maybe String
-    , toolIcons :: Maybe (Map String IconPart)
-    , toolSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 4}
-    ''Tool)
-
-data Gun = Gun
-    { gunType :: String
-    , gunName :: String
-    , gunIcon :: Maybe String
-    , gunIcons :: Maybe (Map String IconPart)
-    , gunSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON defaultOptions{fieldLabelModifier = fmap toLower . L.drop 3} ''Gun)
-
-data Module = Module
-    { moduleType :: String
-    , moduleName :: String
-    , moduleIcon :: Maybe String
-    , moduleIcons :: Maybe (Map String IconPart)
-    , moduleSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 6}
-    ''Module)
-
-data Capsule = Capsule
-    { capsuleType :: String
-    , capsuleName :: String
-    , capsuleIcon :: Maybe String
-    , capsuleIcons :: Maybe (Map String IconPart)
-    , capsuleSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 7}
-    ''Capsule)
-
-data RepairTool = RepairTool
-    { repairToolType :: String
-    , repairToolName :: String
-    , repairToolIcon :: Maybe String
-    , repairToolIcons :: Maybe (Map String IconPart)
-    , repairToolSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10}
-    ''RepairTool)
-
-data Armor = Armor
-    { armorType :: String
-    , armorName :: String
-    , armorIcon :: Maybe String
-    , armorIcons :: Maybe (Map String IconPart)
-    , armorSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 5}
-    ''Armor)
-
-data RailPlanner = RailPlanner
-    { railPlannerType :: String
-    , railPlannerName :: String
-    , railPlannerIcon :: Maybe String
-    , railPlannerIcons :: Maybe (Map String IconPart)
-    , railPlannerSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 11}
-    ''RailPlanner)
-
-data Locomotive = Locomotive
-    { locomotiveType :: String
-    , locomotiveName :: String
-    , locomotiveIcon :: Maybe String
-    , locomotiveIcons :: Maybe (Map String IconPart)
-    , locomotiveSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10}
-    ''Locomotive)
-
-data FluidWagon = FluidWagon
-    { fluidWagonType :: String
-    , fluidWagonName :: String
-    , fluidWagonIcon :: Maybe String
-    , fluidWagonIcons :: Maybe (Map String IconPart)
-    , fluidWagonSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10}
-    ''FluidWagon)
-
-data CargoWagon = CargoWagon
-    { cargoWagonType :: String
-    , cargoWagonName :: String
-    , cargoWagonIcon :: Maybe String
-    , cargoWagonIcons :: Maybe (Map String IconPart)
-    , cargoWagonSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 10}
-    ''CargoWagon)
-
-
-data ArtilleryWagon = ArtilleryWagon
-    { artilleryWagonType :: String
-    , artilleryWagonName :: String
-    , artilleryWagonIcon :: Maybe String
-    , artilleryWagonIcons :: Maybe (Map String IconPart)
-    , artilleryWagonSubgroup :: Maybe String
-    }
-  deriving (Show)
-
-$(deriveJSON
-    defaultOptions{fieldLabelModifier = fmap toLower . L.drop 14}
-    ''ArtilleryWagon)
+        createIcon p = IconPart p Nothing Nothing
 
 data RawData = RawData
     { recipe :: Map String Recipe
-    , item :: Map String Item
-    , fluid :: Map String Fluid
-    , ammo :: Map String Ammo
-    , miningTools :: Map String MiningTool
-    , car :: Map String Car
-    , tool :: Map String Tool
-    , gun :: Map String Gun
-    , module' :: Map String Module
-    , capsule :: Map String Capsule
-    , repairTool :: Map String RepairTool
-    , armor :: Map String Armor
-    , railPlanner :: Map String RailPlanner
-    , locomotive :: Map String Locomotive
-    , fluidWagon :: Map String FluidWagon
-    , cargoWagon :: Map String CargoWagon
-    , artilleryWagon :: Map String ArtilleryWagon
+    , items :: [Item]
     }
   deriving (Show)
 
 instance FromJSON RawData where
     parseJSON = withObject "RawData" $ \v -> RawData
         <$> v .: "recipe"
-        <*> v .: "item"
-        <*> v .: "fluid"
-        <*> v .: "ammo"
-        <*> v .: "mining-tool"
-        <*> v .: "car"
-        <*> v .: "tool"
-        <*> v .: "gun"
-        <*> v .: "module"
-        <*> v .: "capsule"
-        <*> v .: "repair-tool"
-        <*> v .: "armor"
-        <*> v .: "rail-planner"
-        <*> v .: "locomotive"
-        <*> v .: "fluid-wagon"
-        <*> v .: "cargo-wagon"
-        <*> v .: "artillery-wagon"
+        <*> (fmap mconcat . sequence . fmap magic $ getObjects v)
+      where
+        magic :: Value -> Parser [Item]
+        magic v = fmap M.elems (parseJSON v :: Parser (Map String Item))
+            <|> pure []
+
+        getObjects v = mconcat $ fmap (maybeToList . flip HM.lookup v) keys
+        keys =
+            [ "recipe"
+            , "item"
+            , "fluid"
+            , "ammo"
+            , "mining-tool"
+            , "car"
+            , "tool"
+            , "gun"
+            , "module"
+            , "capsule"
+            , "repair-tool"
+            , "armor"
+            , "rail-planner"
+            , "locomotive"
+            , "fluid-wagon"
+            , "cargo-wagon"
+            , "artillery-wagon"
+            ]
+
