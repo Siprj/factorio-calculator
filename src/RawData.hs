@@ -121,12 +121,9 @@ data Recipe = Recipe
     , recipeCategory :: Maybe String
     , recipeNormal :: Maybe InputOutput
     , recipeExpensive :: Maybe InputOutput
-    , recipeMain_product :: Maybe String
     , recipeIcons :: Maybe [IconPart]
     , recipeIngredients :: Maybe (V.Vector Ingredient)
-    , recipeResults :: Maybe (V.Vector Results)
-    , recipeResult :: Maybe String
-    , recipeResult_count :: Maybe Int
+    , recipeResults :: [Results]
     , recipeSubgroup :: Maybe String
     , recipeOrder :: Maybe String
     , recipeEnergy_required :: Maybe Float
@@ -134,21 +131,18 @@ data Recipe = Recipe
   deriving (Show)
 
 instance FromJSON Recipe where
-    parseJSON = withObject "Recipe" $ \v -> Recipe
-        <$> v .: "type"
-        <*> v .: "name"
-        <*> v .:? "category"
-        <*> v .:? "normal"
-        <*> v .:? "expensive"
-        <*> v .:? "main_product"
-        <*> getIcons v
-        <*> v .:? "ingredients"
-        <*> v .:? "results"
-        <*> v .:? "result"
-        <*> v .:? "result_count"
-        <*> v .:? "subgroup"
-        <*> v .:? "order"
-        <*> v .:? "energy_required"
+    parseJSON = withObject "Recipe" $ \o -> Recipe
+        <$> o .: "type"
+        <*> o .: "name"
+        <*> o .:? "category"
+        <*> o .:? "normal"
+        <*> o .:? "expensive"
+        <*> getIcons o
+        <*> o .:? "ingredients"
+        <*> getResults o
+        <*> o .:? "subgroup"
+        <*> o .:? "order"
+        <*> o .:? "energy_required"
       where
         getIcons :: Object -> Parser (Maybe [IconPart])
         getIcons v = fmap (pure . pure . createIcon) (v .: "icon")
@@ -156,6 +150,13 @@ instance FromJSON Recipe where
             <|> pure Nothing
 
         createIcon p = IconPart p Nothing Nothing
+
+        getResults :: Object -> Parser [Results]
+        getResults o = (createResults <$> o .: "result" <*> o .:? "result_count")
+            <|> o .: "results"
+            <|> pure []
+
+        createResults n a = [Results Nothing n Nothing a Nothing Nothing]
 
 data IconPart = IconPart
     { iconPath :: String

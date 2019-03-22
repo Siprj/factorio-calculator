@@ -14,8 +14,8 @@ local function go()
             game.entity_prototypes["DATA_RAW"..index].order)
     end
     data_str = table.concat(data_chunks, "")
-    data = {raw = loadstring(data_str)}
-    game.write_file("data-raw.json", json.encode(data.raw()))
+    local data = {}
+    data.raw = loadstring(data_str)()
 
     local ingameData = {}
     local recipes = {}
@@ -68,7 +68,8 @@ local function go()
         end
     end
     ingameData.inGameModules = modules
-    game.write_file("data-ingame.json", json.encode(ingameData))
+    data.ingameData = ingameData
+    game.write_file("calculator-data.json", json.encode(data))
 end
 
 local function on_gui_click(event)

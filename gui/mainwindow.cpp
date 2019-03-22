@@ -10,9 +10,11 @@
 #include <QDir>
 #include <QTreeWidgetItem>
 #include <QTreeWidget>
+#include <QList>
 
 #include "path.h"
 #include "recipe.h"
+#include "node.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -41,6 +43,11 @@ MainWindow::MainWindow(QWidget *parent) :
     recipList.setRecipeList(recipes);
 
     connect(&recipList, &RecipeList::clicked, this, &MainWindow::showRecipeDetails);
+
+    ui->graphicsView->setScene(&scene);
+
+    Node *node = new Node("pokus", QList<QPair<QPixmap, QString>>(), QList<QPair<QPixmap, QString>>());
+    scene.addItem(node);
 }
 
 MainWindow::~MainWindow()

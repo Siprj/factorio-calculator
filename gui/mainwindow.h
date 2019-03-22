@@ -5,6 +5,7 @@
 #include <QVBoxLayout>
 #include <QTreeWidgetItem>
 #include <QSharedPointer>
+#include <QGraphicsScene>
 
 #include "recipe.h"
 #include "recipelist.h"
@@ -29,6 +30,8 @@ private:
     Ui::MainWindow *ui;
     Recipes recipes;
     RecipeList recipList;
+
+    QGraphicsScene scene;
 
     QList<QSharedPointer<QTreeWidgetItem>> recipDetailsItems;
 };

@@ -29,14 +29,16 @@ SOURCES += \
         mainwindow.cpp \
     recipeviewmodel.cpp \
     recipe.cpp \
-    recipelist.cpp
+    recipelist.cpp \
+    node.cpp
 
 HEADERS += \
         mainwindow.h \
     recipeviewmodel.h \
     recipe.h \
     path.h \
-    recipelist.h
+    recipelist.h \
+    node.h
 
 FORMS += \
         mainwindow.ui \

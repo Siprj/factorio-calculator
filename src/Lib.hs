@@ -178,9 +178,9 @@ copyImages modsDir internalDir dstDir recipes = do
       where
         dstPath = dstDir </> name </> path
 
--- pairRecipeAndImages :: RD.RawData -> [Recipe]
--- pairRecipeAndImages rawData@RD.RawData{..} =
---     pairRecipeAndImage rawData <$> elems recipe
+--pairRecipeAndImages :: RD.RawData -> [Recipe]
+--pairRecipeAndImages rawData@RD.RawData{..} =
+--    pairRecipeAndImage rawData <$> elems recipe
 
 -- pairRecipeAndImage
 --     :: RD.RawData
@@ -289,6 +289,7 @@ run Configuration{..} = do
     data' <- B.readFile rawDataPath
         >>= (eitherToFail . eitherDecodeStrict @RD.RawData)
     print data'
+    mapM_ (\RD.Recipe{..} -> print $ show (length recipeResults) <> " " <> recipeName) . M.elems $ RD.recipe data'
 --    data' <- B.readFile rawDataPath
 --        >>= (eitherToFail . eitherDecodeStrict @RD.RawData)
 --
