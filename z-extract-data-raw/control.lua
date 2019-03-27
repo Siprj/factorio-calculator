@@ -14,10 +14,69 @@ local function go()
             game.entity_prototypes["DATA_RAW"..index].order)
     end
     data_str = table.concat(data_chunks, "")
-    local data = {}
-    data.raw = loadstring(data_str)()
+    local raw = loadstring(data_str)()
 
-    local ingameData = {}
+    itemTypes =
+        { "item"
+        , "fluid"
+        , "ammo"
+        , "mining-tool"
+        , "car"
+        , "tool"
+        , "gun"
+        , "module"
+        , "capsule"
+        , "repair-tool"
+        , "armor"
+        , "rail-planner"
+        , "locomotive"
+        , "fluid-wagon"
+        , "cargo-wagon"
+        , "artillery-wagon"
+        }
+
+    local itemIcons = {}
+    for i = 1, #itemTypes do
+        for k, item in pairs(raw[itemTypes[i]]) do
+            local icons = item.icons
+            if icons == nil then
+                icons = {
+                    {
+                        icon = item.icon,
+                    }
+                }
+            end
+            local tmp = {
+                name = item.name,
+                icons = icons
+            }
+            table.insert(itemIcons, tmp)
+        end
+    end
+
+    local data = {}
+    data.raw = {}
+    data.raw.itemIcons = itemIcons
+
+    local recipeIcons = {}
+    for k, recipe in pairs(raw.recipe) do
+        local icons = recipe.icons
+        if icons == nil then
+            icons = {
+                {
+                    icon = recipe.icon,
+                }
+            }
+        end
+        local tmp = {
+            name = recipe.name,
+            icons = icons
+        }
+        table.insert(recipeIcons, tmp)
+    end
+    data.raw.recipeIcons = recipeIcons
+
+    local inGameData = {}
     local recipes = {}
     for k, recipe in pairs(game.forces.player.recipes) do
         local tmp = {
@@ -29,7 +88,7 @@ local function go()
         }
         table.insert(recipes, tmp)
     end
-    ingameData.inGameRecipes = recipes
+    inGameData.inGameRecipes = recipes
 
     local craftingMachines = {}
     for k, entity in pairs(game.entity_prototypes) do
@@ -51,7 +110,7 @@ local function go()
             table.insert(craftingMachines, tmp)
         end
     end
-    ingameData.inGameCraftingMachines = craftingMachines
+    inGameData.inGameCraftingMachines = craftingMachines
 
     local modules = {}
     for k, module in pairs(game.item_prototypes) do
@@ -67,8 +126,8 @@ local function go()
             table.insert(modules, tmp)
         end
     end
-    ingameData.inGameModules = modules
-    data.ingameData = ingameData
+    inGameData.inGameModules = modules
+    data.inGameData = inGameData
     game.write_file("calculator-data.json", json.encode(data))
 end
 

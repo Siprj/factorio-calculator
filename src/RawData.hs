@@ -7,11 +7,8 @@
 module RawData
     ( IconPart(..)
     , Ingredient(..)
-    , InputOutput(..)
-    , ItemType(..)
-    , RawData(..)
+    , FactorioData(..)
     , Recipe(..)
-    , Results(..)
     , Shift(..)
     , Item(..)
     )
@@ -32,27 +29,10 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 
 
-data ItemType
-    = ItemTypeAmmo
-    | ItemTypeItem
-    | ItemTypeFluid
-    | ItemTypeRecipe
-  deriving (Show)
-
-instance FromJSON ItemType where
-    parseJSON (String text) = case text of
-        "fluid" -> pure ItemTypeFluid
-        "item" -> pure ItemTypeItem
-        "ammo" -> pure ItemTypeAmmo
-        _ -> fail $ "ItemType should be fluid, item, ammo. Got: "
-            <> T.unpack text
-    parseJSON v = fail $ "ItemType should be string. Got: " <> show v
-
-instance ToJSON ItemType where
-    toJSON = \case
-        ItemTypeFluid -> String "fuild"
-        ItemTypeItem -> String "item"
-        ItemTypeAmmo -> String "ammo"
+fromArray :: FromJSON a => Array -> Int -> String -> Parser a
+fromArray a n name = maybe fail' parseJSON $ a V.!? n
+  where
+    fail' = fail $ "Can't parse " <> name <> "."
 
 data Ingredient = Ingredient
     { ingredientName :: String
@@ -60,103 +40,44 @@ data Ingredient = Ingredient
     }
   deriving (Show)
 
-fromArray :: FromJSON a => Array -> Int -> Parser a
-fromArray a n = maybe fail' parseJSON $ a V.!? n
-  where
-    fail' = fail $ "Can't parse ingredient."
-
 instance FromJSON Ingredient where
-    parseJSON (Object o) = Ingredient
+    parseJSON = withObject "Ingredient" $ \o -> Ingredient
         <$> o .: "name"
         <*> o .: "amount"
-    parseJSON (Array a) = Ingredient
-        <$> fromArray a 0
-        <*> fromArray a 1
-    parseJSON v = typeMismatch "Ingredient" v
 
-data Results = Results
-    { resultType :: Maybe ItemType -- Probably defaults to "item"
-    , resultName :: String
-    , resultProbablity :: Maybe Float
+data Product = Product
+    { resultName :: String
     , resultAmount :: Maybe Int
+    , resultProbablity :: Maybe Float
     , resultAmount_min :: Maybe Float
     , resultAmount_max :: Maybe Float
     }
   deriving (Show)
 
-instance FromJSON Results where
-    parseJSON (Object o) = Results
-        <$> o .:? "type"
-        <*> o .: "name"
-        <*> o .:? "probability"
+instance FromJSON Product where
+    parseJSON = withObject "Product" $ \o -> Product
+        <$> o .: "name"
         <*> o .:? "amount"
+        <*> o .:? "probability"
         <*> o .:? "amount_min"
         <*> o .:? "amount_max"
-    parseJSON (Array a) = do
-        name <- fromArray a 0
-        amount <- fromArray a 1
-        pure $ Results Nothing name Nothing amount Nothing Nothing
-    parseJSON v = typeMismatch "Results" v
-
-data InputOutput = InputOutput
-    { inputOutputIngredients :: V.Vector Ingredient
-    , inputOutputResult :: Maybe String
-    , inputOutputResults :: Maybe (Map String Ingredient)
-    , inputOutputRequester_paste_multiplier :: Maybe String
-    , inputOutputEnabled :: Maybe Bool
-    }
-  deriving (Show)
-
-instance FromJSON InputOutput where
-    parseJSON = withObject "InputOutput" $ \v -> InputOutput
-        <$> v .: "ingredients"
-        <*> v .:? "result"
-        <*> v .:? "results"
-        <*> v .:? "requester_paste_multiplier"
-        <*> v .:? "enabled"
 
 data Recipe = Recipe
-    { recipeType :: String
-    , recipeName :: String
-    , recipeCategory :: Maybe String
-    , recipeNormal :: Maybe InputOutput
-    , recipeExpensive :: Maybe InputOutput
-    , recipeIcons :: Maybe [IconPart]
-    , recipeIngredients :: Maybe (V.Vector Ingredient)
-    , recipeResults :: [Results]
-    , recipeSubgroup :: Maybe String
-    , recipeOrder :: Maybe String
-    , recipeEnergy_required :: Maybe Float
+    { recipeName :: String
+    , recipeCategory :: String
+    , recipeIngredients :: [Ingredient]
+    , recipeProducts :: [Product]
+    , recipeEnergy :: Float
     }
   deriving (Show)
 
 instance FromJSON Recipe where
     parseJSON = withObject "Recipe" $ \o -> Recipe
-        <$> o .: "type"
-        <*> o .: "name"
-        <*> o .:? "category"
-        <*> o .:? "normal"
-        <*> o .:? "expensive"
-        <*> getIcons o
-        <*> o .:? "ingredients"
-        <*> getResults o
-        <*> o .:? "subgroup"
-        <*> o .:? "order"
-        <*> o .:? "energy_required"
-      where
-        getIcons :: Object -> Parser (Maybe [IconPart])
-        getIcons v = fmap (pure . pure . createIcon) (v .: "icon")
-            <|> (fmap pure $ v .: "icons")
-            <|> pure Nothing
-
-        createIcon p = IconPart p Nothing Nothing
-
-        getResults :: Object -> Parser [Results]
-        getResults o = (createResults <$> o .: "result" <*> o .:? "result_count")
-            <|> o .: "results"
-            <|> pure []
-
-        createResults n a = [Results Nothing n Nothing a Nothing Nothing]
+        <$> o .: "name"
+        <*> o .: "category"
+        <*> o .: "ingredients"
+        <*> o .: "products"
+        <*> o .: "energy"
 
 data IconPart = IconPart
     { iconPath :: String
@@ -178,7 +99,8 @@ data Shift = Shift
   deriving (Show)
 
 instance FromJSON Shift where
-    parseJSON = parseJSON >=> fromArray
+    parseJSON v = pure $ Shift 0 0
+        -- parseJSON >=> fromArray
       where
         fail' = fail $ "Can't parse shift."
 
@@ -189,43 +111,31 @@ instance FromJSON Shift where
 
 data Item = Item
     { item2Name :: String
-    , item2Type :: String
     , item2Icons :: [IconPart]
     }
   deriving (Show)
 
 instance FromJSON Item where
-    parseJSON = withObject "Item" $ \v -> do
-        name' <- v .: "name"
-        type' <- v .: "type"
-        icons' <- getIcons v
-        pure $ Item name' type' icons'
-      where
-        getIcons :: Object -> Parser [IconPart]
-        getIcons v = fmap (pure . createIcon) (v .: "icon")
-            <|> v .: "icons"
+    parseJSON = withObject "Item" $ \v -> do Item
+        <$> v .: "name"
+        <*> v .: "icons"
 
-        createIcon p = IconPart p Nothing Nothing
-
-data RawData = RawData
-    { recipe :: Map String Recipe
-    , items :: [Item]
+data Items = Items
+    { itemsItems :: [Item]
     }
   deriving (Show)
 
-instance FromJSON RawData where
-    parseJSON = withObject "RawData" $ \v -> RawData
-        <$> v .: "recipe"
-        <*> (fmap mconcat . sequence . fmap magic $ getObjects v)
+instance FromJSON Items where
+    parseJSON = withObject "Items" $ \o -> Items
+        <$> (fmap mconcat . sequence . fmap magic $ getObjects o)
       where
         magic :: Value -> Parser [Item]
-        magic v = fmap M.elems (parseJSON v :: Parser (Map String Item))
+        magic o = fmap M.elems (parseJSON o :: Parser (Map String Item))
             <|> pure []
 
-        getObjects v = mconcat $ fmap (maybeToList . flip HM.lookup v) keys
+        getObjects o = mconcat $ fmap (maybeToList . flip HM.lookup o) keys
         keys =
-            [ "recipe"
-            , "item"
+            [ "item"
             , "fluid"
             , "ammo"
             , "mining-tool"
@@ -243,3 +153,55 @@ instance FromJSON RawData where
             , "artillery-wagon"
             ]
 
+data RawRecipe = RawRecipe
+    { rawRecipeName :: String
+    , rawRecipeIcons :: [IconPart]
+    }
+  deriving (Show)
+
+instance FromJSON RawRecipe where
+    parseJSON = withObject "RawRecipe" $ \o -> RawRecipe
+        <$> o .: "name"
+        <*> o .: "icons"
+
+data RawItem = RawItem
+    { rawItemName :: String
+    , rawItemIcons :: [IconPart]
+    }
+  deriving (Show)
+
+instance FromJSON RawItem where
+    parseJSON = withObject "RawItem" $ \o -> RawItem
+        <$> o .: "name"
+        <*> o .: "icons"
+
+data Raw = Raw
+    { rawRecipes :: [RawRecipe]
+    , rawItems :: [RawItem]
+    }
+  deriving (Show)
+
+instance FromJSON Raw where
+    parseJSON = withObject "Raw" $ \o -> Raw
+        <$> o .: "recipeIcons"
+        <*> o .: "itemIcons"
+
+data InGame = InGame
+    { inGameDataRecipes :: [Recipe]
+    }
+  deriving (Show)
+
+instance FromJSON InGame where
+    parseJSON = withObject "InGame" $ \o -> InGame
+        <$> o .: "inGameRecipes"
+
+data FactorioData = FactorioData
+    { raw :: Items
+    , inGameData :: InGame
+    }
+  deriving (Show)
+
+instance FromJSON FactorioData where
+    parseJSON = withObject "FactorioData" $ \v -> FactorioData
+        <$> v .: "raw"
+        <*> v .: "inGameData"
