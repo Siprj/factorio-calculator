@@ -5,6 +5,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Lib
     ( Configuration(..)
@@ -46,7 +47,7 @@ import qualified RawData as RD
 
 type ZipPath = FilePath
 
-data Ingredient = Product
+data Ingredient = Ingredient
     { ingredientName :: String
     , ingredientAmount :: Int
     }
@@ -98,7 +99,7 @@ $(deriveJSON
 data Recipe = Recipe
     { recipeName :: String
     , recipeIngredients :: [Ingredient]
-    , recipeResults :: [Product]
+    , recipeProducts :: [Product]
     , recipeIcon :: [IconPart]
     }
   deriving (Show)
@@ -122,6 +123,12 @@ data FactorioData = FactorioData
     , recipes :: [Recipe]
     }
   deriving (Show)
+
+instance ToJSON FactorioData where
+    toJSON FactorioData{..} = object
+        [ "items" .= items
+        , "recipes" .= recipes
+        ]
 
 data ModType
     = Zip FilePath
@@ -178,14 +185,12 @@ associateMods modsDir internalDir = do
             (fmap (Directory . (modsDir </>)) dirs)
         <> internalMods internalDir
 
-copyImages :: FilePath -> FilePath -> FilePath -> [Recipe] -> IO ()
-copyImages modsDir internalDir dstDir recipes = do
+copyImages :: FilePath -> FilePath -> FilePath -> [IconPart] -> IO ()
+copyImages modsDir internalDir dstDir icons = do
     associatedMods <- associateMods modsDir internalDir
-    mapM_ (copyImages' associatedMods) icons
+    mapM_ (copyImages' associatedMods . splitModNameAndPath . iconPartIcon)
+        icons
   where
-    icons = fmap splitModNameAndPath . mconcat
-        $ fmap (fmap iconPartIcon . icon) recipes
-
     copyImages' associatedMods (name, path) =
         case associatedMods M.!? name of
             Just (Directory dir) -> do
@@ -208,38 +213,66 @@ eitherToFail (Right a) = pure a
 eitherToFail (Left e) = fail e
 
 toNiceFactorioData :: RD.FactorioData -> FactorioData
-toNiceFactorioData RD.FactorioData{..} =
+toNiceFactorioData RD.FactorioData{..} = FactorioData
+    { items = fmap toItem $ RD.rawItems raw
+    , recipes = fmap toRecipe $ RD.inGameDataRecipes inGameData
+    }
   where
-    toRecipe RD.Recipe = Recipe
+    toRecipe RD.Recipe{..} = Recipe
         { recipeName
         , recipeIngredients = toIngredient <$> recipeIngredients
-        , recipeProducts =
+        , recipeProducts = toProduct <$> recipeProducts
+        , recipeIcon = getRecipeIcon recipeName
+        }
 
     toIngredient RD.Ingredient{..} = Ingredient
         { ingredientName
         , ingredientAmount
         }
 
-    toResult RD.Product{..} = Product
+    toProduct RD.Product{..} = Product
         { productName
         , productAmount = fromMaybe 1 productAmount
-        , productProbablity = formMaybe 1.0 productProbablity
+        , productProbablity = fromMaybe 1.0 productProbablity
+        }
+
+    getRecipeIcon recipeName = fromMaybe [] $
+        (findRawRecipe recipeName >>= fmap (fmap toIconPart) . RD.rawRecipeIcons)
+        <|> (fmap (fmap toIconPart . RD.rawItemIcons) $ findRawItem recipeName)
+
+    findRawRecipe :: String -> Maybe RD.RawRecipe
+    findRawRecipe recipeName = F.find
+        (\RD.RawRecipe{..} -> recipeName == rawRecipeName) $ RD.rawRecipes raw
+
+    findRawItem :: String -> Maybe RD.RawItem
+    findRawItem recipeName =
+        F.find (\RD.RawItem{..} -> recipeName == rawItemName) $ RD.rawItems raw
+
+    toShift RD.Shift{..} = Shift
+        { x
+        , y
+        }
+
+    toIconPart RD.IconPart{..} = IconPart
+        { iconPartIcon = iconPath
+        , iconPartScale = scale
+        , iconPartShift = fmap toShift shift
+        }
+
+    toItem RD.RawItem{..} = Item
+        { itemName = rawItemName
+        , itemIcon = fmap toIconPart rawItemIcons
         }
 
 run :: Configuration -> IO ()
 run Configuration{..} = do
     data' <- B.readFile rawDataPath
         >>= (eitherToFail . eitherDecodeStrict @RD.FactorioData)
-    print data'
-    -- mapM_ (\RD.Recipe{..} -> print $ show (length recipeResults) <> " " <> recipeName) . M.elems $ RD.recipe data'
---    data' <- B.readFile rawDataPath
---        >>= (eitherToFail . eitherDecodeStrict @RD.RawData)
---
---    let parsedData = pairRecipeAndImages data'
---    copyImages
---        factorioModsDirPath
---        factorioDataDirPath
---        outputDir
---        parsedData
---
---    BL.writeFile (outputDir </> "data.json") $ encode parsedData
+
+    let niceData = toNiceFactorioData data'
+    let itemIcons = mconcat . fmap itemIcon $ items niceData
+    let recipeIcons = mconcat . fmap recipeIcon $ recipes niceData
+    copyImages factorioModsDirPath factorioDataDirPath outputDir
+        $ itemIcons <> recipeIcons
+
+    BL.writeFile (outputDir </> "data.json") $ encode niceData

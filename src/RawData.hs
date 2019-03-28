@@ -8,8 +8,13 @@ module RawData
     ( IconPart(..)
     , Ingredient(..)
     , FactorioData(..)
+    , Raw(..)
+    , RawItem(..)
+    , RawRecipe(..)
     , Recipe(..)
     , Shift(..)
+    , Product(..)
+    , InGame(..)
     )
   where
 
@@ -92,8 +97,8 @@ instance FromJSON IconPart where
         <*> v .:? "shift"
 
 data Shift = Shift
-    { x2 :: Int
-    , y2 :: Int
+    { x :: Int
+    , y :: Int
     }
   deriving (Show)
 
