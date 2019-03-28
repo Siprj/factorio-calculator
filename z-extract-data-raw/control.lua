@@ -61,7 +61,7 @@ local function go()
     local recipeIcons = {}
     for k, recipe in pairs(raw.recipe) do
         local icons = recipe.icons
-        if icons == nil then
+        if icons == nil and recipe.icon ~= nil then
             icons = {
                 {
                     icon = recipe.icon,

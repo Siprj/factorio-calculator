@@ -10,7 +10,6 @@ module RawData
     , FactorioData(..)
     , Recipe(..)
     , Shift(..)
-    , Item(..)
     )
   where
 
@@ -46,11 +45,11 @@ instance FromJSON Ingredient where
         <*> o .: "amount"
 
 data Product = Product
-    { resultName :: String
-    , resultAmount :: Maybe Int
-    , resultProbablity :: Maybe Float
-    , resultAmount_min :: Maybe Float
-    , resultAmount_max :: Maybe Float
+    { productName :: String
+    , productAmount :: Maybe Int
+    , productProbablity :: Maybe Float
+    , productAmount_min :: Maybe Float
+    , productAmount_max :: Maybe Float
     }
   deriving (Show)
 
@@ -109,60 +108,16 @@ instance FromJSON Shift where
             <$> a V.!? 0
             <*> a V.!? 1
 
-data Item = Item
-    { item2Name :: String
-    , item2Icons :: [IconPart]
-    }
-  deriving (Show)
-
-instance FromJSON Item where
-    parseJSON = withObject "Item" $ \v -> do Item
-        <$> v .: "name"
-        <*> v .: "icons"
-
-data Items = Items
-    { itemsItems :: [Item]
-    }
-  deriving (Show)
-
-instance FromJSON Items where
-    parseJSON = withObject "Items" $ \o -> Items
-        <$> (fmap mconcat . sequence . fmap magic $ getObjects o)
-      where
-        magic :: Value -> Parser [Item]
-        magic o = fmap M.elems (parseJSON o :: Parser (Map String Item))
-            <|> pure []
-
-        getObjects o = mconcat $ fmap (maybeToList . flip HM.lookup o) keys
-        keys =
-            [ "item"
-            , "fluid"
-            , "ammo"
-            , "mining-tool"
-            , "car"
-            , "tool"
-            , "gun"
-            , "module"
-            , "capsule"
-            , "repair-tool"
-            , "armor"
-            , "rail-planner"
-            , "locomotive"
-            , "fluid-wagon"
-            , "cargo-wagon"
-            , "artillery-wagon"
-            ]
-
 data RawRecipe = RawRecipe
     { rawRecipeName :: String
-    , rawRecipeIcons :: [IconPart]
+    , rawRecipeIcons :: Maybe [IconPart]
     }
   deriving (Show)
 
 instance FromJSON RawRecipe where
     parseJSON = withObject "RawRecipe" $ \o -> RawRecipe
         <$> o .: "name"
-        <*> o .: "icons"
+        <*> o .:? "icons"
 
 data RawItem = RawItem
     { rawItemName :: String
@@ -196,7 +151,7 @@ instance FromJSON InGame where
         <$> o .: "inGameRecipes"
 
 data FactorioData = FactorioData
-    { raw :: Items
+    { raw :: Raw
     , inGameData :: InGame
     }
   deriving (Show)
