@@ -104,7 +104,13 @@ data Recipe = Recipe
     }
   deriving (Show)
 
-$(deriveJSON defaultOptions ''Recipe)
+instance ToJSON Recipe where
+    toJSON Recipe{..} = object
+        [ "name" .= recipeName
+        , "ingredients" .= recipeIngredients
+        , "products" .= recipeProducts
+        , "icon" .= recipeIcon
+        ]
 
 data Item = Item
     { itemName :: String

@@ -33,20 +33,20 @@ struct Icon
     static Icon fromJsonObject(QJsonObject obj);
 };
 
-struct Result
+struct Product
 {
     QString name;
     int amount;
     float probablity;
 
-    static Result fromJsonObject(QJsonObject obj);
+    static Product fromJsonObject(QJsonObject obj);
 };
 
 struct Recipe
 {
     QString name;
     QList<Ingredient> ingredients;
-    QList<Result> results;
+    QList<Product> products;
     QList<Icon> icons;
 
     static Recipe fromJsonObject(QJsonObject);
@@ -54,6 +54,6 @@ struct Recipe
 
 using Recipes = QList<Recipe>;
 
-Recipes fromJsonObject(QJsonValue obj);
+Recipes fromJsonObject(QJsonObject obj);
 
 #endif // RECIPE_H

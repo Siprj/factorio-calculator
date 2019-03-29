@@ -13,10 +13,10 @@ Recipe Recipe::fromJsonObject(QJsonObject obj)
         ingredients.append(Ingredient::fromJsonObject(val.toObject()));
     }
 
-    QJsonArray jsonResults = obj.value("results").toArray();
-    QList<Result> results;
+    QJsonArray jsonResults = obj.value("products").toArray();
+    QList<Product> products;
     for (auto val: jsonResults) {
-        results.append(Result::fromJsonObject(val.toObject()));
+        products.append(Product::fromJsonObject(val.toObject()));
     }
 
     QJsonArray jsonIcon = obj.value("icon").toArray();
@@ -26,7 +26,7 @@ Recipe Recipe::fromJsonObject(QJsonObject obj)
     }
 
 
-    return {obj.value("name").toString(), ingredients, results, icons};
+    return {obj.value("name").toString(), ingredients, products, icons};
 }
 
 Ingredient Ingredient::fromJsonObject(QJsonObject obj)
@@ -50,7 +50,7 @@ Icon Icon::fromJsonObject(QJsonObject obj)
     return { obj.value("icon").toString(), scale, shift};
 }
 
-Result Result::fromJsonObject(QJsonObject obj)
+Product Product::fromJsonObject(QJsonObject obj)
 {
     return
         { obj.value("name").toString()
@@ -59,10 +59,11 @@ Result Result::fromJsonObject(QJsonObject obj)
         };
 }
 
-Recipes fromJsonObject(QJsonValue obj)
+Recipes fromJsonObject(QJsonObject obj)
 {
+    QJsonValue recipesArray = obj.value("recipes");
     QList<Recipe> recipes;
-    for (auto val: obj.toArray()) {
+    for (auto val: recipesArray.toArray()) {
         recipes.append(Recipe::fromJsonObject(val.toObject()));
     }
     return { recipes };

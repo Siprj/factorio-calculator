@@ -31,8 +31,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QString val = file.readAll();
     file.close();
     QJsonDocument d = QJsonDocument::fromJson(val.toUtf8());
-    QJsonArray array = d.array();
-    recipes = fromJsonObject(array);
+    recipes = fromJsonObject(d.object());
 
     QDir::setCurrent(dirPath);
 
@@ -86,12 +85,12 @@ void MainWindow::showRecipeDetails(Recipe recipe)
     QSharedPointer<QTreeWidgetItem> results = QSharedPointer<QTreeWidgetItem>(new QTreeWidgetItem);
     results->setData(0, Qt::DisplayRole, "results");
     recipDetailsItems.append(results);
-    for (auto &result : recipe.results)
+    for (auto &product : recipe.products)
     {
         QSharedPointer<QTreeWidgetItem> resultItem =
             QSharedPointer<QTreeWidgetItem>(new QTreeWidgetItem(results.get()));
-        resultItem->setData(0, Qt::DisplayRole, result.name);
-        resultItem->setData(1, Qt::DisplayRole, result.amount);
+        resultItem->setData(0, Qt::DisplayRole, product.name);
+        resultItem->setData(1, Qt::DisplayRole, product.amount);
         recipDetailsItems.append(resultItem);
     }
     ui->recipeDetailsTreeWidget->addTopLevelItem(results.get());
