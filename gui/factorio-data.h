@@ -49,11 +49,27 @@ struct Recipe
     QList<Product> products;
     QList<Icon> icons;
 
-    static Recipe fromJsonObject(QJsonObject);
+    static Recipe fromJsonObject(QJsonObject obj);
+};
+
+struct Item
+{
+    QString name;
+    QList<Icon> icons;
+    static Item fromJsonObject(QJsonObject obj);
 };
 
 using Recipes = QList<Recipe>;
+using Items = QList<Item>;
 
-Recipes fromJsonObject(QJsonObject obj);
+struct FactorioData
+{
+    Recipes recipes;
+    Items items;
+};
+
+FactorioData fromJsonObject(QJsonObject obj);
+
+
 
 #endif // RECIPE_H

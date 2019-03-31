@@ -6,8 +6,9 @@
 #include <QTreeWidgetItem>
 #include <QSharedPointer>
 #include <QGraphicsScene>
+#include <QMap>
 
-#include "recipe.h"
+#include "factorio-data.h"
 #include "recipelist.h"
 
 
@@ -28,10 +29,12 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    Recipes recipes;
+    FactorioData factorioData;
     RecipeList recipList;
 
     QGraphicsScene scene;
+
+    QMap<QString, QPixmap> itemMap;
 
     QList<QSharedPointer<QTreeWidgetItem>> recipDetailsItems;
 };

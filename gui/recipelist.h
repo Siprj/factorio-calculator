@@ -4,7 +4,7 @@
 #include <QWidget>
 
 #include "recipeviewmodel.h"
-#include "recipe.h"
+#include "factorio-data.h"
 
 
 namespace Ui {

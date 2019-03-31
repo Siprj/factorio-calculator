@@ -8,6 +8,8 @@
 #include <math.h>
 #include <QRegularExpression>
 
+#include "icon.h"
+
 
 RecipeList::RecipeList(QWidget *parent) :
     QWidget(parent),
@@ -75,31 +77,7 @@ void RecipeList::addRecipesToModel()
 
     for (auto v : filteredRecipes)
     {
-        QPixmap iconPixmap(32, 32);
-        iconPixmap.fill(QColor(0,0,0, 0));
-        QPainter paint(&iconPixmap);
-        for (int i = 0; i < v.icons.size(); i++)
-        {
-            Icon icon = v.icons.at(i);
 
-            QPixmap iconPart(icon.filePath);
-            QPixmap scaledIconPart(iconPart.scaled
-                ( static_cast<int>(std::round(iconPart.width() * icon.scale))
-                , static_cast<int>(std::round(iconPart.height() * icon.scale))
-                ));
-
-            int x = 0;
-            int y = 0;
-
-            if (icon.shift.has_value())
-            {
-                // Move shift coordinate system to center and scale it.
-                x = static_cast<int>(((32/2) * icon.scale) + (static_cast<double>(icon.shift.value().x)));
-                y = static_cast<int>(((32/2) * icon.scale) + (static_cast<double>(icon.shift.value().y)));
-            }
-
-            paint.drawPixmap(x, y, scaledIconPart.width(), scaledIconPart.height(), scaledIconPart);
-        }
-        model.addPiece(iconPixmap, v.name);
+        model.addPiece(icon::composeIcon(v.icons), v.name);
     }
 }

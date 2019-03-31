@@ -28,17 +28,19 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
     recipeviewmodel.cpp \
-    recipe.cpp \
     recipelist.cpp \
-    node.cpp
+    node.cpp \
+    icon.cpp \
+    factorio-data.cpp
 
 HEADERS += \
         mainwindow.h \
     recipeviewmodel.h \
-    recipe.h \
     path.h \
     recipelist.h \
-    node.h
+    node.h \
+    icon.h \
+    factorio-data.h
 
 FORMS += \
         mainwindow.ui \

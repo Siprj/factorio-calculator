@@ -1,4 +1,4 @@
-#include "recipe.h"
+#include "factorio-data.h"
 
 #include <QJsonObject>
 #include <QJsonArray>
@@ -59,20 +59,42 @@ Product Product::fromJsonObject(QJsonObject obj)
         };
 }
 
-Recipes fromJsonObject(QJsonObject obj)
+
+Shift Shift::fromJsonObject(QJsonObject obj)
 {
+
+    return
+        { obj.value("x").toInt()
+        , obj.value("y").toInt()
+        };
+}
+
+Item Item::fromJsonObject(QJsonObject obj)
+{
+    QJsonArray jsonIcon = obj.value("icon").toArray();
+    QList<Icon> icons;
+    for (auto val: jsonIcon) {
+        icons.append(Icon::fromJsonObject(val.toObject()));
+    }
+
+    return
+        { obj.value("name").toString()
+        , icons
+        };
+}
+
+FactorioData fromJsonObject(QJsonObject obj)
+{
+
     QJsonValue recipesArray = obj.value("recipes");
     QList<Recipe> recipes;
     for (auto val: recipesArray.toArray()) {
         recipes.append(Recipe::fromJsonObject(val.toObject()));
     }
-    return { recipes };
-}
-
-Shift Shift::fromJsonObject(QJsonObject obj)
-{
-    return
-        { obj.value("x").toInt()
-        , obj.value("y").toInt()
-        };
+    QJsonValue itemsArray = obj.value("items");
+    QList<Item> items;
+    for (auto val: recipesArray.toArray()) {
+        items.append(Item::fromJsonObject(val.toObject()));
+    }
+    return { recipes, items };
 }

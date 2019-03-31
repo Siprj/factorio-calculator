@@ -40,7 +40,7 @@ fromArray a n name = maybe fail' parseJSON $ a V.!? n
 
 data Ingredient = Ingredient
     { ingredientName :: String
-    , ingredientAmount :: Int
+    , ingredientAmount :: Float
     }
   deriving (Show)
 
@@ -51,7 +51,7 @@ instance FromJSON Ingredient where
 
 data Product = Product
     { productName :: String
-    , productAmount :: Maybe Int
+    , productAmount :: Maybe Float
     , productProbablity :: Maybe Float
     , productAmount_min :: Maybe Float
     , productAmount_max :: Maybe Float

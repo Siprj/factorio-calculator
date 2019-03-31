@@ -49,7 +49,7 @@ type ZipPath = FilePath
 
 data Ingredient = Ingredient
     { ingredientName :: String
-    , ingredientAmount :: Int
+    , ingredientAmount :: Float
     }
   deriving (Show)
 
@@ -59,7 +59,7 @@ $(deriveJSON
 
 data Product = Product
     { productName :: String
-    , productAmount :: Int
+    , productAmount :: Float
     , productProbablity :: Float
     }
   deriving (Show)
@@ -228,7 +228,7 @@ toNiceFactorioData RD.FactorioData{..} = FactorioData
         { recipeName
         , recipeIngredients = toIngredient <$> recipeIngredients
         , recipeProducts = toProduct <$> recipeProducts
-        , recipeIcon = getRecipeIcon recipeName
+        , recipeIcon = getRecipeIcon recipeName recipeProducts
         }
 
     toIngredient RD.Ingredient{..} = Ingredient
@@ -242,9 +242,11 @@ toNiceFactorioData RD.FactorioData{..} = FactorioData
         , productProbablity = fromMaybe 1.0 productProbablity
         }
 
-    getRecipeIcon recipeName = fromMaybe [] $
+    -- TODO: lens may help to simplify this...
+    getRecipeIcon recipeName recipeProducts = fromMaybe [] $
         (findRawRecipe recipeName >>= fmap (fmap toIconPart) . RD.rawRecipeIcons)
         <|> (fmap (fmap toIconPart . RD.rawItemIcons) $ findRawItem recipeName)
+        <|> (RD.productName <$> listToMaybe recipeProducts >>= fmap (fmap toIconPart . RD.rawItemIcons) . findRawItem)
 
     findRawRecipe :: String -> Maybe RD.RawRecipe
     findRawRecipe recipeName = F.find

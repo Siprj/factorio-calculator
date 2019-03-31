@@ -14,8 +14,8 @@ public:
     // TODO: Use some normal (custom) data structure for inputs and outputs...
     Node
         ( QString name
-        , QList<QPair<QPixmap, QString>> inputs
-        , QList<QPair<QPixmap, QString>> outputs
+        , QList<QPair<QString, QPixmap>> inputs
+        , QList<QPair<QString, QPixmap>> outputs
         );
 
     void paint
@@ -26,24 +26,16 @@ public:
 
     QRectF boundingRect() const;
 
-    int getHeight() const;
-    void setHeight(int value);
-
-    int getWeight() const;
-    void setWeight(int value);
-
-    int getWidth() const;
-    void setWidth(int value);
-
     QString getName() const;
 
 private:
     QString name;
-    QList<QPair<QPixmap, QString>> inputs;
-    QList<QPair<QPixmap, QString>> outputs;
+    QList<QPair<QString, QPixmap>> inputs;
+    QList<QPair<QString, QPixmap>> outputs;
     qreal roundDiameter;
-    int height;
-    int width;
+    int titleHeight;
+    int titleWidth;
+    int rowHeight;
 };
 
 #endif // NODE_H

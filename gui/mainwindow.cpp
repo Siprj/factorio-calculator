@@ -13,8 +13,9 @@
 #include <QList>
 
 #include "path.h"
-#include "recipe.h"
+#include "factorio-data.h"
 #include "node.h"
+#include "icon.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -31,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QString val = file.readAll();
     file.close();
     QJsonDocument d = QJsonDocument::fromJson(val.toUtf8());
-    recipes = fromJsonObject(d.object());
+    factorioData = fromJsonObject(d.object());
 
     QDir::setCurrent(dirPath);
 
@@ -39,13 +40,27 @@ MainWindow::MainWindow(QWidget *parent) :
     layout->addWidget(&recipList);
     layout->setMargin(0);
 
-    recipList.setRecipeList(recipes);
+    recipList.setRecipeList(factorioData.recipes);
 
     connect(&recipList, &RecipeList::clicked, this, &MainWindow::showRecipeDetails);
 
     ui->graphicsView->setScene(&scene);
 
-    Node *node = new Node("pokus", QList<QPair<QPixmap, QString>>(), QList<QPair<QPixmap, QString>>());
+
+
+    for (auto &item : factorioData.items)
+    {
+        itemMap.insert(item.name, icon::composeIcon(item.icons));
+    }
+
+    auto iter = itemMap.begin();
+
+    QList<QPair<QString, QPixmap>> inputs;
+    inputs.append(QPair(iter.key(), iter.value()));
+    QList<QPair<QString, QPixmap>> outputs;
+    ++iter;
+    outputs.append(QPair(iter.key(), iter.value()));
+    Node *node = new Node("pokus", inputs, outputs);
     scene.addItem(node);
 }
 
