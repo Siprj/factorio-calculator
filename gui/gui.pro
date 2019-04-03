@@ -40,7 +40,9 @@ HEADERS += \
     recipelist.h \
     node.h \
     icon.h \
-    factorio-data.h
+    factorio-data.h \
+    nodeitem.h \
+    mime-data.h
 
 FORMS += \
         mainwindow.ui \

@@ -16,6 +16,7 @@
 #include "factorio-data.h"
 #include "node.h"
 #include "icon.h"
+#include "nodeitem.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -55,11 +56,11 @@ MainWindow::MainWindow(QWidget *parent) :
 
     auto iter = itemMap.begin();
 
-    QList<QPair<QString, QPixmap>> inputs;
-    inputs.append(QPair(iter.key(), iter.value()));
-    QList<QPair<QString, QPixmap>> outputs;
+    QList<NodeItem> inputs;
+    inputs.append(NodeItem{iter.key(), iter.value(), 0});
+    QList<NodeItem> outputs;
     ++iter;
-    outputs.append(QPair(iter.key(), iter.value()));
+    outputs.append(NodeItem{iter.key(), iter.value(), 0});
     Node *node = new Node("pokus", inputs, outputs);
     scene.addItem(node);
 }

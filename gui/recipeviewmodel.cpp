@@ -2,6 +2,9 @@
 
 #include <QIcon>
 #include <QDebug>
+#include <QMimeData>
+
+#include "mime-data.h"
 
 
 RecipeViewModel::RecipeViewModel(QObject *parent)
@@ -41,6 +44,32 @@ int RecipeViewModel::rowCount(const QModelIndex &parent) const
         return 0;
     else
         return pixmaps.size();
+}
+
+Qt::ItemFlags RecipeViewModel::flags(const QModelIndex&) const
+{
+    return Qt::ItemIsDragEnabled | Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+}
+
+QMimeData* RecipeViewModel::mimeData(const QModelIndexList &indexes) const
+{
+
+    QMimeData *mimeData = new QMimeData;
+
+    QByteArray data;
+    QDataStream stream(&data, QIODevice::WriteOnly);
+
+    for (auto &index : indexes)
+    {
+        if (index.isValid())
+        {
+            stream << names.at(index.row());
+        }
+    }
+
+    mimeData->setData(recipeMimeType, data);
+
+    return mimeData;
 }
 
 void RecipeViewModel::clearModel()

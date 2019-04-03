@@ -7,15 +7,16 @@
 #include <QRectF>
 #include <QPair>
 
+#include "nodeitem.h"
+
 
 class Node : public QGraphicsItem
 {
 public:
-    // TODO: Use some normal (custom) data structure for inputs and outputs...
     Node
         ( QString name
-        , QList<QPair<QString, QPixmap>> inputs
-        , QList<QPair<QString, QPixmap>> outputs
+        , QList<NodeItem> inputs
+        , QList<NodeItem> outputs
         );
 
     void paint
@@ -25,17 +26,23 @@ public:
         );
 
     QRectF boundingRect() const;
+    void drawLine(QPainter *painter, NodeItem item, qreal y);
 
     QString getName() const;
 
 private:
     QString name;
-    QList<QPair<QString, QPixmap>> inputs;
-    QList<QPair<QString, QPixmap>> outputs;
-    qreal roundDiameter;
-    int titleHeight;
-    int titleWidth;
-    int rowHeight;
+    QString fontName{"Nimbus Romana"};
+    QList<NodeItem> inputs;
+    QList<NodeItem> outputs;
+    const qreal itemCountWidth{20};
+    const qreal roundDiameter{15};
+    const qreal textHeight{12};
+    const qreal titleHeight{20};
+    const qreal rowHeight{40};
+    const qreal iconSize{32};
+    const qreal columnPadding{5};
+    qreal nodeWidth;
 };
 
 #endif // NODE_H

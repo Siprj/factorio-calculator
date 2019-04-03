@@ -18,6 +18,9 @@ public:
     void addPiece(const QPixmap &pixmap, QString name);
     int rowCount(const QModelIndex &parent) const override;
 
+    Qt::ItemFlags flags(const QModelIndex &) const override;
+    QMimeData* mimeData(const QModelIndexList &indexes) const override;
+
     void clearModel();
 
 private:
