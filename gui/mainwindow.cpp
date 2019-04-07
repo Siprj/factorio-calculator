@@ -81,11 +81,6 @@ void MainWindow::showRecipeDetails(Recipe recipe)
     recipDetailsItems.append(name);
     ui->recipeDetailsTreeWidget->addTopLevelItem(name.get());
 
-//    QSharedPointer<QTreeWidgetItem> amount = QSharedPointer<QTreeWidgetItem>(new QTreeWidgetItem);
-//    amount->setData(0, Qt::DisplayRole, "amount");
-//    amount->setData(1, Qt::DisplayRole, recipe.);
-//    recipDetailsItems.append(name);
-//    ui->recipeDetailsTreeWidget->addTopLevelItem(name.get());
     QSharedPointer<QTreeWidgetItem> ingredients = QSharedPointer<QTreeWidgetItem>(new QTreeWidgetItem);
     ingredients->setData(0, Qt::DisplayRole, "ingredients");
     recipDetailsItems.append(ingredients);

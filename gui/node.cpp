@@ -37,13 +37,28 @@ Node::Node
 
     // Add icon size and some padding.
     nodeWidth += iconSize + itemCountWidth + columnPadding * 4;
+
+    qreal bodySize = (inputs.size() + outputs.size()) * rowHeight;
+    qreal bottomY = titleHeight + bodySize + roundDiameter / 2;
+    _boundingRect = {0, 0, nodeWidth, bottomY};
+
+    for (int i = 0; i < inputs.size(); ++i)
+    {
+        new NodePort{-5, titleHeight + rowHeight/2 - 5 + rowHeight * i, PortType::INPUT, this};
+    }
+    for (int i = 0; i < outputs.size(); ++i)
+    {
+        new NodePort{nodeWidth - 5, titleHeight + rowHeight/2 - 5 + rowHeight * (i + inputs.size()), PortType::OUTPUT, this};
+    }
+
 }
 
-void Node::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+void Node::paint
+    ( QPainter *painter
+    , const QStyleOptionGraphicsItem*
+    , QWidget*
+    )
 {
-    Q_UNUSED(option)
-    Q_UNUSED(widget)
-
     painter->setRenderHint(QPainter::Antialiasing);
     painter->setRenderHint(QPainter::HighQualityAntialiasing);
 
@@ -76,15 +91,13 @@ void Node::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWid
         , name
         );
 
-    qreal bodySize = (inputs.size() + outputs.size()) * rowHeight;
-    qreal bottomY = titleHeight + bodySize + roundRadius;
     // Body
     QPainterPath bodyPath;
-    bodyPath.moveTo(nodeWidth, titleHeight);
-    bodyPath.lineTo(nodeWidth, bottomY - roundRadius);
-    bodyPath.arcTo(nodeWidth - roundDiameter, bottomY - roundDiameter, roundDiameter, roundDiameter, 0.0, -90.0);
-    bodyPath.lineTo(roundRadius, bottomY);
-    bodyPath.arcTo(0, bottomY - roundDiameter, roundDiameter, roundDiameter, -90.0, -90.0);
+    bodyPath.moveTo(_boundingRect.width(), titleHeight);
+    bodyPath.lineTo(_boundingRect.width(), _boundingRect.bottom() - roundRadius);
+    bodyPath.arcTo(_boundingRect.width() - roundDiameter, _boundingRect.bottom() - roundDiameter, roundDiameter, roundDiameter, 0.0, -90.0);
+    bodyPath.lineTo(roundRadius, _boundingRect.bottom());
+    bodyPath.arcTo(0, _boundingRect.bottom() - roundDiameter, roundDiameter, roundDiameter, -90.0, -90.0);
     bodyPath.lineTo(0, titleHeight);
     bodyPath.closeSubpath();
 
@@ -115,7 +128,7 @@ void Node::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWid
 
 QRectF Node::boundingRect() const
 {
-    return QRect(0,0, 100, 50);
+    return _boundingRect;
 }
 
 void Node::drawLine(QPainter *painter, NodeItem item, qreal y)

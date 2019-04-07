@@ -25,16 +25,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++17
 
 SOURCES += \
-        main.cpp \
-        mainwindow.cpp \
+    main.cpp \
+    mainwindow.cpp \
     recipeviewmodel.cpp \
     recipelist.cpp \
     node.cpp \
     icon.cpp \
-    factorio-data.cpp
+    factorio-data.cpp \
+    nodeport.cpp
 
 HEADERS += \
-        mainwindow.h \
+    mainwindow.h \
     recipeviewmodel.h \
     path.h \
     recipelist.h \
@@ -42,10 +43,11 @@ HEADERS += \
     icon.h \
     factorio-data.h \
     nodeitem.h \
-    mime-data.h
+    mime-data.h \
+    nodeport.h
 
 FORMS += \
-        mainwindow.ui \
+    mainwindow.ui \
     recipelist.ui
 
 # Default rules for deployment.
