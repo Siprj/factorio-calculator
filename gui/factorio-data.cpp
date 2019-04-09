@@ -59,10 +59,8 @@ Product Product::fromJsonObject(QJsonObject obj)
         };
 }
 
-
 Shift Shift::fromJsonObject(QJsonObject obj)
 {
-
     return
         { obj.value("x").toInt()
         , obj.value("y").toInt()
@@ -85,16 +83,19 @@ Item Item::fromJsonObject(QJsonObject obj)
 
 FactorioData fromJsonObject(QJsonObject obj)
 {
-
     QJsonValue recipesArray = obj.value("recipes");
-    QList<Recipe> recipes;
-    for (auto val: recipesArray.toArray()) {
-        recipes.append(Recipe::fromJsonObject(val.toObject()));
+    Recipes recipes;
+    for (auto val: recipesArray.toArray())
+    {
+        Recipe recipe = Recipe::fromJsonObject(val.toObject());
+        recipes.insert(recipe.name, recipe);
     }
     QJsonValue itemsArray = obj.value("items");
-    QList<Item> items;
-    for (auto val: recipesArray.toArray()) {
-        items.append(Item::fromJsonObject(val.toObject()));
+    Items items;
+    for (auto val: itemsArray.toArray())
+    {
+        Item item = Item::fromJsonObject(val.toObject());
+        items.insert(item.name, item);
     }
     return { recipes, items };
 }

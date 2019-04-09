@@ -45,9 +45,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(&recipList, &RecipeList::clicked, this, &MainWindow::showRecipeDetails);
 
-    ui->graphicsView->setScene(&scene);
-
-
+    scene.reset(new NodeScene(&factorioData));
+    ui->graphicsView->setScene(scene.get());
 
     for (auto &item : factorioData.items)
     {
@@ -62,7 +61,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ++iter;
     outputs.append(NodeItem{iter.key(), iter.value(), 0});
     Node *node = new Node("pokus", inputs, outputs);
-    scene.addItem(node);
+
+    scene->addItem(node);
 }
 
 MainWindow::~MainWindow()

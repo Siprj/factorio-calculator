@@ -19,22 +19,22 @@ QVariant RecipeViewModel::data(const QModelIndex &index, int role) const
         return QVariant();
 
     if (role == Qt::DisplayRole)
-        return names.value(index.row());
+        return recipes.value(index.row())->name;
     if (role == Qt::ToolTipRole)
-        return names.value(index.row());
+        return recipes.value(index.row())->name;
     if (role == Qt::DecorationRole)
         return QIcon(pixmaps.value(index.row()));
 
     return QVariant();
 }
 
-void RecipeViewModel::addPiece(const QPixmap &pixmap, QString name)
+void RecipeViewModel::addPiece(const QPixmap &pixmap, Recipe *recipe)
 {
     int row = pixmaps.size();
 
     beginInsertRows(QModelIndex(), row, row);
     pixmaps.insert(row, pixmap);
-    names.insert(row, name);
+    recipes.insert(row, recipe);
     endInsertRows();
 }
 
@@ -59,12 +59,10 @@ QMimeData* RecipeViewModel::mimeData(const QModelIndexList &indexes) const
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
 
-    for (auto &index : indexes)
+    auto &index = indexes.first();
+    if (index.isValid())
     {
-        if (index.isValid())
-        {
-            stream << names.at(index.row());
-        }
+        stream << recipes.at(index.row())->name;
     }
 
     mimeData->setData(recipeMimeType, data);
@@ -74,8 +72,8 @@ QMimeData* RecipeViewModel::mimeData(const QModelIndexList &indexes) const
 
 void RecipeViewModel::clearModel()
 {
-    beginRemoveRows(QModelIndex(), 0, names.size() - 1);
+    beginRemoveRows(QModelIndex(), 0, recipes.size() - 1);
     pixmaps.clear();
-    names.clear();
+    recipes.clear();
     endRemoveRows();
 }

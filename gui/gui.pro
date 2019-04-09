@@ -32,7 +32,8 @@ SOURCES += \
     node.cpp \
     icon.cpp \
     factorio-data.cpp \
-    nodeport.cpp
+    nodeport.cpp \
+    nodescene.cpp
 
 HEADERS += \
     mainwindow.h \
@@ -44,7 +45,8 @@ HEADERS += \
     factorio-data.h \
     nodeitem.h \
     mime-data.h \
-    nodeport.h
+    nodeport.h \
+    nodescene.h
 
 FORMS += \
     mainwindow.ui \

@@ -59,8 +59,8 @@ struct Item
     static Item fromJsonObject(QJsonObject obj);
 };
 
-using Recipes = QList<Recipe>;
-using Items = QList<Item>;
+using Recipes = QMap<QString, Recipe>;
+using Items = QMap<QString, Item>;
 
 struct FactorioData
 {
@@ -69,7 +69,5 @@ struct FactorioData
 };
 
 FactorioData fromJsonObject(QJsonObject obj);
-
-
 
 #endif // RECIPE_H

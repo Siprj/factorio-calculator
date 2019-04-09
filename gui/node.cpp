@@ -51,6 +51,8 @@ Node::Node
         new NodePort{nodeWidth - 5, titleHeight + rowHeight/2 - 5 + rowHeight * (i + inputs.size()), PortType::OUTPUT, this};
     }
 
+    setFlag(QGraphicsItem::ItemIsMovable, true);
+
 }
 
 void Node::paint

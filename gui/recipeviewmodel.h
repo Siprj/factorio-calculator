@@ -7,6 +7,8 @@
 #include <QPoint>
 #include <QStringList>
 
+#include "factorio-data.h"
+
 
 class RecipeViewModel : public QAbstractListModel
 {
@@ -15,7 +17,7 @@ public:
     explicit RecipeViewModel(QObject *parent = nullptr);
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    void addPiece(const QPixmap &pixmap, QString name);
+    void addPiece(const QPixmap &pixmap, Recipe *recipe);
     int rowCount(const QModelIndex &parent) const override;
 
     Qt::ItemFlags flags(const QModelIndex &) const override;
@@ -25,7 +27,7 @@ public:
 
 private:
     QList<QPixmap> pixmaps;
-    QList<QString> names;
+    QList<Recipe*> recipes;
 
     int m_PieceSize;
 };

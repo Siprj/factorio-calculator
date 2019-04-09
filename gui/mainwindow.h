@@ -10,6 +10,7 @@
 
 #include "factorio-data.h"
 #include "recipelist.h"
+#include "nodescene.h"
 
 
 namespace Ui {
@@ -32,7 +33,7 @@ private:
     FactorioData factorioData;
     RecipeList recipList;
 
-    QGraphicsScene scene;
+    QSharedPointer<NodeScene> scene;
 
     QMap<QString, QPixmap> itemMap;
 

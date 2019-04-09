@@ -37,7 +37,7 @@ private:
     Ui::RecipeList *ui;
     RecipeViewModel model;
     Recipes allRecipes;
-    Recipes filteredRecipes;
+    QList<Recipe> filteredRecipes;
 };
 
 #endif // RECIPELIST_H

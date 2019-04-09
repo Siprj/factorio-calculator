@@ -18,8 +18,8 @@ RecipeList::RecipeList(QWidget *parent) :
     ui->setupUi(this);
 
     ui->recipeView->setViewMode(QListView::IconMode);
-    ui->recipeView->setIconSize(QSize(32,32));
-    ui->recipeView->setGridSize(QSize(32,32));
+    ui->recipeView->setIconSize(QSize(32, 32));
+    ui->recipeView->setGridSize(QSize(32, 32));
     ui->recipeView->setSpacing(0);
     ui->recipeView->setResizeMode(QListView::Adjust);
 
@@ -38,14 +38,14 @@ RecipeList::~RecipeList()
 void RecipeList::setRecipeList(Recipes &recipes)
 {
     this->allRecipes = recipes;
-    this->filteredRecipes = recipes;
+    this->filteredRecipes = recipes.values();
 
     addRecipesToModel();
 }
 
 void RecipeList::clearFilter()
 {
-    filteredRecipes = allRecipes;
+    filteredRecipes = allRecipes.values();
     ui->filterLineEdit->clear();
 
     addRecipesToModel();
@@ -75,9 +75,8 @@ void RecipeList::addRecipesToModel()
 {
     model.clearModel();
 
-    for (auto v : filteredRecipes)
+    for (auto &v : filteredRecipes)
     {
-
-        model.addPiece(icon::composeIcon(v.icons), v.name);
+        model.addPiece(icon::composeIcon(v.icons), &v);
     }
 }
